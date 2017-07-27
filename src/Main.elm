@@ -243,20 +243,8 @@ containerWidth =
 view : Model -> Html Msg
 view model =
     let
-        width =
-            min containerWidth (Tuple.first model.ui.windowSize)
-
-        height =
-            toFloat width
-                |> (*) 9
-                |> (\n -> n / 21)
-                |> round
-
-        game : Coords
         game =
-            { x = width
-            , y = height
-            }
+            model.game
 
         position =
             model.player.position
@@ -270,7 +258,7 @@ view model =
             , ( "position", "relative" )
             , ( "width", "100%" )
             , ( "max-width", toString containerWidth ++ "px" )
-            , ( "height", toString height ++ "px" )
+            , ( "height", toString game.y ++ "px" )
             , ( "margin", "0 auto" )
             , ( "border", "1px solid #EEE" )
             , ( "font-family", "sans-serif" )
