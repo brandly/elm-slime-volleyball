@@ -2,7 +2,7 @@ module Main exposing (..)
 
 import AnimationFrame
 import Debug exposing (log)
-import Html exposing (Html, div, text)
+import Html exposing (Html, div, h1, text)
 import Html.Attributes exposing (style)
 import Html.Events exposing (onClick)
 import Keyboard exposing (KeyCode)
@@ -231,7 +231,7 @@ initialWindowSizeCommand =
 playerSize : Coords
 playerSize =
     { x = 50
-    , y = 50
+    , y = 25
     }
 
 
@@ -273,9 +273,11 @@ view model =
             , ( "height", toString height ++ "px" )
             , ( "margin", "0 auto" )
             , ( "border", "1px solid #EEE" )
+            , ( "font-family", "sans-serif" )
             ]
         ]
-        [ div
+        [ h1 [ style [ ( "text-align", "center" ) ] ] [ text "~ slime volleyball ~" ]
+        , div
             [ style
                 [ ( "position", "absolute" )
                 , ( "top", "0" )
@@ -284,6 +286,8 @@ view model =
                 , ( "background", "blue" )
                 , ( "width", toString playerSize.x ++ "px" )
                 , ( "height", toString playerSize.y ++ "px" )
+                , ( "border-top-left-radius", toString (playerSize.x * 2) ++ "px" )
+                , ( "border-top-right-radius", toString (playerSize.x * 2) ++ "px" )
                 ]
             ]
             []
