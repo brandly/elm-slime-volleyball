@@ -41,10 +41,14 @@ type alias Player =
     }
 
 
+type alias Game =
+    Coords
+
+
 type alias Model =
     { player : Player
     , ui : Ui
-    , game : Coords
+    , game : Game
     }
 
 
@@ -85,7 +89,7 @@ update action ({ ui, player, game } as model) =
                         |> (\n -> n / 21)
                         |> round
 
-                game : Coords
+                game : Game
                 game =
                     { x = width
                     , y = height
@@ -241,17 +245,7 @@ containerWidth =
 
 
 view : Model -> Html Msg
-view model =
-    let
-        game =
-            model.game
-
-        position =
-            model.player.position
-
-        top =
-            game.y - position.y - playerSize.y
-    in
+view { game, player } =
     div
         [ style
             [ ( "box-sizing", "border-box" )
@@ -265,18 +259,30 @@ view model =
             ]
         ]
         [ h1 [ style [ ( "text-align", "center" ) ] ] [ text "~ slime volleyball ~" ]
-        , div
-            [ style
-                [ ( "position", "absolute" )
-                , ( "top", "0" )
-                , ( "left", "0" )
-                , ( "transform", "translate(" ++ toString position.x ++ "px, " ++ toString top ++ "px)" )
-                , ( "background", "blue" )
-                , ( "width", toString playerSize.x ++ "px" )
-                , ( "height", toString playerSize.y ++ "px" )
-                , ( "border-top-left-radius", toString (playerSize.x * 2) ++ "px" )
-                , ( "border-top-right-radius", toString (playerSize.x * 2) ++ "px" )
-                ]
-            ]
-            []
+        , renderPlayer player game
         ]
+
+
+renderPlayer : Player -> Game -> Html Msg
+renderPlayer player game =
+    let
+        { x, y } =
+            player.position
+
+        top =
+            game.y - y - playerSize.y
+    in
+    div
+        [ style
+            [ ( "position", "absolute" )
+            , ( "top", "0" )
+            , ( "left", "0" )
+            , ( "transform", "translate(" ++ toString x ++ "px, " ++ toString top ++ "px)" )
+            , ( "background", "blue" )
+            , ( "width", toString playerSize.x ++ "px" )
+            , ( "height", toString playerSize.y ++ "px" )
+            , ( "border-top-left-radius", toString (playerSize.x * 2) ++ "px" )
+            , ( "border-top-right-radius", toString (playerSize.x * 2) ++ "px" )
+            ]
+        ]
+        []
