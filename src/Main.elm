@@ -38,6 +38,7 @@ type alias Player =
     , position : Coords
     , leftKey : KeyCode
     , rightKey : KeyCode
+
     --, velocity
     }
 
@@ -117,6 +118,7 @@ update action ({ ui, player, game } as model) =
             --({ model | secondsPassed = model.secondsPassed+1 }, Cmd.none)
             ( model, Cmd.none )
 
+
 applyKeysToPlayerPosition : PressedKeys -> Player -> Game -> Coords
 applyKeysToPlayerPosition pressedKeys player game =
     let
@@ -144,9 +146,8 @@ applyKeysToPlayerPosition pressedKeys player game =
 
         position =
             player.position
-
     in
-        { position | x = x }
+    { position | x = x }
 
 
 handleKeyChange : Bool -> KeyCode -> Model -> Model
@@ -184,8 +185,10 @@ keyPressed keycode pressedKeys =
 type alias Size =
     ( Int, Int )
 
+
 type alias PressedKeys =
     Set KeyCode
+
 
 type alias Ui =
     { windowSize : Size
