@@ -102,33 +102,8 @@ update action ({ ui, player, game } as model) =
 
         Tick delta ->
             let
-                leftPressed =
-                    keyPressed 37 ui.pressedKeys
-
-                rightPressed =
-                    keyPressed 39 ui.pressedKeys
-
-                move =
-                    if leftPressed then
-                        -5
-                    else if rightPressed then
-                        5
-                    else
-                        0
-
-                x =
-                    if position.x + move < 0 then
-                        0
-                    else if position.x + move + playerSize.x > game.x then
-                        game.x - playerSize.x
-                    else
-                        position.x + move
-
-                position =
-                    player.position
-
                 position_ =
-                    { position | x = x }
+                    applyKeysToPlayerPosition ui.pressedKeys player game
 
                 player_ =
                     { player | position = position_ }
@@ -140,6 +115,37 @@ update action ({ ui, player, game } as model) =
         TimeSecond _ ->
             --({ model | secondsPassed = model.secondsPassed+1 }, Cmd.none)
             ( model, Cmd.none )
+
+applyKeysToPlayerPosition : PressedKeys -> Player -> Game -> Coords
+applyKeysToPlayerPosition pressedKeys player game =
+    let
+        leftPressed =
+            keyPressed 37 pressedKeys
+
+        rightPressed =
+            keyPressed 39 pressedKeys
+
+        move =
+            if leftPressed then
+                -5
+            else if rightPressed then
+                5
+            else
+                0
+
+        x =
+            if position.x + move < 0 then
+                0
+            else if position.x + move + playerSize.x > game.x then
+                game.x - playerSize.x
+            else
+                position.x + move
+
+        position =
+            player.position
+
+    in
+        { position | x = x }
 
 
 handleKeyChange : Bool -> KeyCode -> Model -> Model
@@ -163,7 +169,7 @@ handleKeyChange pressed keycode ({ ui, player } as model) =
     { model | ui = ui_ }
 
 
-keyPressed : KeyCode -> Set KeyCode -> Bool
+keyPressed : KeyCode -> PressedKeys -> Bool
 keyPressed keycode pressedKeys =
     Set.member keycode pressedKeys
 
@@ -177,10 +183,12 @@ keyPressed keycode pressedKeys =
 type alias Size =
     ( Int, Int )
 
+type alias PressedKeys =
+    Set KeyCode
 
 type alias Ui =
     { windowSize : Size
-    , pressedKeys : Set KeyCode
+    , pressedKeys : PressedKeys
     , screen : Screen
     }
 
