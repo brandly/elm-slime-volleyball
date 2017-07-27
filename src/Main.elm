@@ -62,7 +62,7 @@ initialUi : Ui
 initialUi =
     { windowSize = ( 500, 500 )
     , pressedKeys = Set.empty
-    , screen = StartScreen
+    , screen = PlayScreen
     }
 
 
@@ -207,11 +207,8 @@ type alias Ui =
 
 type Screen
     = StartScreen
-
-
-
---| PlayScreen
---| GameoverScreen
+    | PlayScreen
+    | GameoverScreen
 
 
 subscriptions : Model -> Sub Msg
@@ -231,16 +228,17 @@ subscriptions { ui } =
         seconds =
             Time.every Time.second TimeSecond
     in
-    case ui.screen of
+    (case ui.screen of
         StartScreen ->
             [ window, seconds ]
-                ++ keys
-                ++ animation
-                --PlayScreen ->
-                --  [ window ] ++ keys ++ animation
-                --GameoverScreen ->
-                --  [ window ] ++ keys
-                |> Sub.batch
+
+        PlayScreen ->
+            [ window ] ++ keys ++ animation
+
+        GameoverScreen ->
+            [ window ] ++ keys
+    )
+        |> Sub.batch
 
 
 initialWindowSizeCommand : Cmd Msg
