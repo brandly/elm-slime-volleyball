@@ -44,6 +44,7 @@ type alias Player =
 type alias Model =
     { player : Player
     , ui : Ui
+    , game : Coords
     }
 
 
@@ -57,8 +58,9 @@ initialUi =
 
 initialModel : Model
 initialModel =
-    { player = Player "cool" (Coords 10 2)
+    { player = Player "cool" (Coords 10 0)
     , ui = initialUi
+    , game = { x = 500, y = 500 }
     }
 
 
@@ -70,10 +72,26 @@ type Msg
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
-update action ({ ui, player } as model) =
+update action ({ ui, player, game } as model) =
     case action of
         ResizeWindow dimensions ->
-            ( { model | ui = { ui | windowSize = dimensions } }, Cmd.none )
+            let
+                width =
+                    min containerWidth (Tuple.first dimensions)
+
+                height =
+                    toFloat width
+                        |> (*) 9
+                        |> (\n -> n / 21)
+                        |> round
+
+                game : Coords
+                game =
+                    { x = width
+                    , y = height
+                    }
+            in
+            ( { model | ui = { ui | windowSize = dimensions }, game = game }, Cmd.none )
 
         KeyChange pressed keycode ->
             ( handleKeyChange pressed keycode model, Cmd.none )
@@ -94,11 +112,19 @@ update action ({ ui, player } as model) =
                     else
                         0
 
+                x =
+                    if position.x + move < 0 then
+                        0
+                    else if position.x + move + playerSize.x > game.x then
+                        game.x - playerSize.x
+                    else
+                        position.x + move
+
                 position =
                     player.position
 
                 position_ =
-                    { position | x = position.x + move }
+                    { position | x = x }
 
                 player_ =
                     { player | position = position_ }
