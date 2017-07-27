@@ -48,7 +48,8 @@ type alias Game =
 
 
 type alias Model =
-    { player : Player
+    { player1 : Player
+    , player2 : Player
     , ui : Ui
     , game : Game
     }
@@ -64,7 +65,8 @@ initialUi =
 
 initialModel : Model
 initialModel =
-    { player = Player "cool" (Coords 10 0) 37 39
+    { player1 = Player "cool" (Coords 10 0) 65 68
+    , player2 = Player "lame" (Coords 500 0) 37 39
     , ui = initialUi
     , game = { x = 500, y = 500 }
     }
@@ -78,7 +80,7 @@ type Msg
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
-update action ({ ui, player, game } as model) =
+update action ({ ui, player1, player2, game } as model) =
     case action of
         ResizeWindow dimensions ->
             let
@@ -104,13 +106,19 @@ update action ({ ui, player, game } as model) =
 
         Tick delta ->
             let
-                position_ =
-                    applyKeysToPlayerPosition ui.pressedKeys player game
+                position1_ =
+                    applyKeysToPlayerPosition ui.pressedKeys player1 game
 
-                player_ =
-                    { player | position = position_ }
+                player1_ =
+                    { player1 | position = position1_ }
+
+                position2_ =
+                    applyKeysToPlayerPosition ui.pressedKeys player2 game
+
+                player2_ =
+                    { player2 | position = position2_ }
             in
-            ( { model | player = player_ }, Cmd.none )
+            ( { model | player1 = player1_, player2 = player2_ }, Cmd.none )
 
         --StartGame ->
         --  (freshGame ui, Cmd.none)
@@ -151,7 +159,7 @@ applyKeysToPlayerPosition pressedKeys player game =
 
 
 handleKeyChange : Bool -> KeyCode -> Model -> Model
-handleKeyChange pressed keycode ({ ui, player } as model) =
+handleKeyChange pressed keycode ({ ui } as model) =
     let
         fn =
             if pressed then
@@ -161,9 +169,6 @@ handleKeyChange pressed keycode ({ ui, player } as model) =
 
         pressedKeys_ =
             fn keycode ui.pressedKeys
-
-        position =
-            player.position
 
         ui_ =
             { ui | pressedKeys = pressedKeys_ }
@@ -257,7 +262,7 @@ containerWidth =
 
 
 view : Model -> Html Msg
-view { game, player } =
+view { game, player1, player2 } =
     div
         [ style
             [ ( "box-sizing", "border-box" )
@@ -271,7 +276,8 @@ view { game, player } =
             ]
         ]
         [ h1 [ style [ ( "text-align", "center" ) ] ] [ text "~ slime volleyball ~" ]
-        , renderPlayer player game
+        , renderPlayer player1 game
+        , renderPlayer player2 game
         ]
 
 
