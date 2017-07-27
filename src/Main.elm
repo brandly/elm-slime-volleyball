@@ -36,7 +36,8 @@ type alias Coords =
 type alias Player =
     { name : String
     , position : Coords
-
+    , leftKey : KeyCode
+    , rightKey : KeyCode
     --, velocity
     }
 
@@ -62,7 +63,7 @@ initialUi =
 
 initialModel : Model
 initialModel =
-    { player = Player "cool" (Coords 10 0)
+    { player = Player "cool" (Coords 10 0) 37 39
     , ui = initialUi
     , game = { x = 500, y = 500 }
     }
@@ -120,10 +121,10 @@ applyKeysToPlayerPosition : PressedKeys -> Player -> Game -> Coords
 applyKeysToPlayerPosition pressedKeys player game =
     let
         leftPressed =
-            keyPressed 37 pressedKeys
+            keyPressed player.leftKey pressedKeys
 
         rightPressed =
-            keyPressed 39 pressedKeys
+            keyPressed player.rightKey pressedKeys
 
         move =
             if leftPressed then
