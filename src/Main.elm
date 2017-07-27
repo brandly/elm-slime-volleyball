@@ -76,8 +76,7 @@ update action ({ ui } as model) =
             ( { model | ui = { ui | windowSize = dimensions } }, Cmd.none )
 
         KeyChange pressed keycode ->
-            --(handleKeyChange pressed keycode model, Cmd.none)
-            ( model, Cmd.none )
+            (handleKeyChange pressed keycode model, Cmd.none)
 
         Tick delta ->
             ( model, Cmd.none )
@@ -89,6 +88,34 @@ update action ({ ui } as model) =
             ( model, Cmd.none )
 
 
+handleKeyChange : Bool -> KeyCode -> Model -> Model
+handleKeyChange pressed keycode ({ ui, player } as model) =
+    let
+        fn = if pressed then Set.insert else Set.remove
+        pressedKeys_ = fn keycode ui.pressedKeys
+
+        leftPressed = keyPressed 37 pressedKeys_
+        rightPressed = keyPressed 39 pressedKeys_
+
+        move =
+            if leftPressed then
+                -10
+            else if rightPressed then
+                10
+            else
+                0
+
+        position = player.position
+
+        ui_ = { ui | pressedKeys = pressedKeys_ }
+        position_ = { position | x = position.x + move }
+        player_ = { player | position = position_ }
+    in
+        { model | ui = ui_, player = player_ }
+
+keyPressed : KeyCode -> Set KeyCode -> Bool
+keyPressed keycode pressedKeys =
+  Set.member keycode pressedKeys
 
 --NoOp ->
 --  (model, Cmd.none)
@@ -134,7 +161,7 @@ subscriptions { ui } =
     in
     case ui.screen of
         StartScreen ->
-            [ window, seconds ]
+            [ window, seconds ] ++ keys
                 --PlayScreen ->
                 --  [ window ] ++ keys ++ animation
                 --GameoverScreen ->
