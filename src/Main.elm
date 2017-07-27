@@ -263,7 +263,7 @@ containerWidth =
 
 
 view : Model -> Html Msg
-view { game, player1, player2 } =
+view ({ ui, game } as model) =
     div
         [ style
             [ ( "box-sizing", "border-box" )
@@ -276,6 +276,22 @@ view { game, player1, player2 } =
             , ( "font-family", "sans-serif" )
             ]
         ]
+        [ case ui.screen of
+            StartScreen ->
+                div [] [ text "start" ]
+
+            PlayScreen ->
+                renderPlayScreen model
+
+            GameoverScreen ->
+                div [] [ text "game over" ]
+        ]
+
+
+renderPlayScreen : Model -> Html Msg
+renderPlayScreen { game, player1, player2 } =
+    div
+        []
         [ h1 [ style [ ( "text-align", "center" ) ] ] [ text "~ slime volleyball ~" ]
         , renderPlayer player1 game
         , renderPlayer player2 game
