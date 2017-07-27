@@ -70,7 +70,7 @@ type Msg
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
-update action ({ ui } as model) =
+update action ({ ui, player } as model) =
     case action of
         ResizeWindow dimensions ->
             ( { model | ui = { ui | windowSize = dimensions } }, Cmd.none )
@@ -79,7 +79,24 @@ update action ({ ui } as model) =
             (handleKeyChange pressed keycode model, Cmd.none)
 
         Tick delta ->
-            ( model, Cmd.none )
+            let
+                leftPressed = keyPressed 37 ui.pressedKeys
+                rightPressed = keyPressed 39 ui.pressedKeys
+
+                move =
+                    if leftPressed then
+                        -5
+                    else if rightPressed then
+                        5
+                    else
+                        0
+
+                position = player.position
+
+                position_ = { position | x = position.x + move }
+                player_ = { player | position = position_ }
+            in
+            ( { model | player = player_ }, Cmd.none )
 
         --StartGame ->
         --  (freshGame ui, Cmd.none)
@@ -94,24 +111,11 @@ handleKeyChange pressed keycode ({ ui, player } as model) =
         fn = if pressed then Set.insert else Set.remove
         pressedKeys_ = fn keycode ui.pressedKeys
 
-        leftPressed = keyPressed 37 pressedKeys_
-        rightPressed = keyPressed 39 pressedKeys_
-
-        move =
-            if leftPressed then
-                -10
-            else if rightPressed then
-                10
-            else
-                0
-
         position = player.position
 
         ui_ = { ui | pressedKeys = pressedKeys_ }
-        position_ = { position | x = position.x + move }
-        player_ = { player | position = position_ }
     in
-        { model | ui = ui_, player = player_ }
+        { model | ui = ui_ }
 
 keyPressed : KeyCode -> Set KeyCode -> Bool
 keyPressed keycode pressedKeys =
@@ -161,7 +165,7 @@ subscriptions { ui } =
     in
     case ui.screen of
         StartScreen ->
-            [ window, seconds ] ++ keys
+            [ window, seconds ] ++ keys ++ animation
                 --PlayScreen ->
                 --  [ window ] ++ keys ++ animation
                 --GameoverScreen ->
