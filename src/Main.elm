@@ -28,8 +28,8 @@ main =
 
 
 type alias Coords =
-    { x : Float
-    , y : Float
+    { x : Int
+    , y : Int
     }
 
 
@@ -57,7 +57,7 @@ initialUi =
 
 initialModel : Model
 initialModel =
-    { player = Player "cool" (Coords 10.0 2.0)
+    { player = Player "cool" (Coords 10 2)
     , ui = initialUi
     }
 
@@ -151,51 +151,62 @@ initialWindowSizeCommand =
 -- VIEW
 
 
-playerSize : Size
+playerSize : Coords
 playerSize =
-    ( 50, 50 )
+    { x = 50
+    , y = 50
+    }
+
+
+containerWidth : Int
+containerWidth =
+    720
 
 
 view : Model -> Html Msg
 view model =
     let
         width =
-            model.ui.windowSize
-                |> Tuple.first
-                |> toFloat
+            min containerWidth (Tuple.first model.ui.windowSize)
 
         height =
-            width * 9 / 21
+            toFloat width
+                |> (*) 9
+                |> (\n -> n / 21)
+                |> round
 
-        gameSize : Size
-        gameSize =
-            ( round width, round height )
+        game : Coords
+        game =
+            { x = width
+            , y = height
+            }
 
         position =
             model.player.position
 
         top =
-            height - position.y - toFloat (Tuple.first playerSize)
+            game.y - position.y - playerSize.y
     in
     div
         [ style
             [ ( "box-sizing", "border-box" )
             , ( "position", "relative" )
             , ( "width", "100%" )
-            , ( "max-width", "720px" )
+            , ( "max-width", toString containerWidth ++ "px" )
+            , ( "height", toString height ++ "px" )
             , ( "margin", "0 auto" )
+            , ( "border", "1px solid #EEE" )
             ]
         ]
-        [ text (toString model.ui.windowSize)
-        , div
+        [ div
             [ style
                 [ ( "position", "absolute" )
                 , ( "top", "0" )
                 , ( "left", "0" )
                 , ( "transform", "translate(" ++ toString position.x ++ "px, " ++ toString top ++ "px)" )
                 , ( "background", "blue" )
-                , ( "width", toString (Tuple.first playerSize) ++ "px" )
-                , ( "height", toString (Tuple.second playerSize) ++ "px" )
+                , ( "width", toString playerSize.x ++ "px" )
+                , ( "height", toString playerSize.y ++ "px" )
                 ]
             ]
             []
