@@ -1,6 +1,8 @@
 module Main exposing (..)
 
 import AnimationFrame
+import Color exposing (Color)
+import Color.Convert
 import Debug exposing (log)
 import Html exposing (Html, div, h1, text)
 import Html.Attributes exposing (style)
@@ -38,6 +40,7 @@ type alias Player =
     , position : Coords
     , leftKey : KeyCode
     , rightKey : KeyCode
+    , color : Color
 
     --, velocity
     }
@@ -65,8 +68,8 @@ initialUi =
 
 initialModel : Model
 initialModel =
-    { player1 = Player "cool" (Coords 10 0) 65 68
-    , player2 = Player "lame" (Coords 500 0) 37 39
+    { player1 = Player "cool" (Coords 10 0) 65 68 Color.blue
+    , player2 = Player "lame" (Coords 500 0) 37 39 Color.red
     , ui = initialUi
     , game = { x = 500, y = 500 }
     }
@@ -296,7 +299,7 @@ renderPlayer player game =
             , ( "top", "0" )
             , ( "left", "0" )
             , ( "transform", "translate(" ++ toString x ++ "px, " ++ toString top ++ "px)" )
-            , ( "background", "blue" )
+            , ( "background", Color.Convert.colorToHex player.color )
             , ( "width", toString playerSize.x ++ "px" )
             , ( "height", toString playerSize.y ++ "px" )
             , ( "border-top-left-radius", toString (playerSize.x * 2) ++ "px" )
