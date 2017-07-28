@@ -4,7 +4,7 @@ import AnimationFrame
 import Color exposing (Color)
 import Color.Convert
 import Debug exposing (log)
-import Html exposing (Html, div, h1, text)
+import Html exposing (Html, button, div, h1, text)
 import Html.Attributes exposing (style)
 import Html.Events exposing (onClick)
 import Keyboard exposing (KeyCode)
@@ -62,7 +62,7 @@ initialUi : Ui
 initialUi =
     { windowSize = ( 500, 500 )
     , pressedKeys = Set.empty
-    , screen = PlayScreen
+    , screen = StartScreen
     }
 
 
@@ -75,11 +75,24 @@ initialModel =
     }
 
 
+freshGame : Model -> Model
+freshGame { ui, game } =
+    let
+        ui_ =
+            { ui
+                | screen = PlayScreen
+                , pressedKeys = Set.empty
+            }
+    in
+    { initialModel | ui = ui_, game = game }
+
+
 type Msg
     = ResizeWindow Size
     | Tick Time
     | KeyChange Bool KeyCode
     | TimeSecond Time
+    | StartGame
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -123,8 +136,9 @@ update action ({ ui, player1, player2, game } as model) =
             in
             ( { model | player1 = player1_, player2 = player2_ }, Cmd.none )
 
-        --StartGame ->
-        --  (freshGame ui, Cmd.none)
+        StartGame ->
+            ( freshGame model, Cmd.none )
+
         TimeSecond _ ->
             --({ model | secondsPassed = model.secondsPassed+1 }, Cmd.none)
             ( model, Cmd.none )
@@ -278,7 +292,7 @@ view ({ ui, game } as model) =
         ]
         [ case ui.screen of
             StartScreen ->
-                div [] [ text "start" ]
+                renderStartScreen model
 
             PlayScreen ->
                 renderPlayScreen model
@@ -288,11 +302,43 @@ view ({ ui, game } as model) =
         ]
 
 
+renderStartScreen : Model -> Html Msg
+renderStartScreen model =
+    let
+        topMargin =
+            model.game.y // 2 - 48
+    in
+    div
+        []
+        [ renderHeader
+        , button
+            [ onClick StartGame
+            , style
+                [ ( "display", "block" )
+                , ( "margin", toString topMargin ++ "px auto 0" )
+                , ( "background", Color.Convert.colorToHex Color.blue )
+                , ( "color", Color.Convert.colorToHex Color.white )
+                , ( "border", "none" )
+                , ( "font-size", "36px" )
+                , ( "padding", "12px 24px" )
+                , ( "border-radius", "3px" )
+                , ( "letter-spacing", "2px" )
+                ]
+            ]
+            [ text "start" ]
+        ]
+
+
+renderHeader : Html Msg
+renderHeader =
+    h1 [ style [ ( "text-align", "center" ) ] ] [ text "~ slime volleyball ~" ]
+
+
 renderPlayScreen : Model -> Html Msg
 renderPlayScreen { game, player1, player2 } =
     div
         []
-        [ h1 [ style [ ( "text-align", "center" ) ] ] [ text "~ slime volleyball ~" ]
+        [ renderHeader
         , renderPlayer player1 game
         , renderPlayer player2 game
         ]
