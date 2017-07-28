@@ -50,11 +50,18 @@ type alias Game =
     Coords
 
 
+type alias Wall =
+    { height : Int
+    , width : Int
+    }
+
+
 type alias Model =
     { player1 : Player
     , player2 : Player
     , ui : Ui
     , game : Game
+    , wall : Wall
     }
 
 
@@ -72,6 +79,7 @@ initialModel =
     , player2 = Player "lame" (Coords 500 0) 37 39 Color.red
     , ui = initialUi
     , game = { x = 500, y = 500 }
+    , wall = { height = 50, width = 10 }
     }
 
 
@@ -335,13 +343,33 @@ renderHeader =
 
 
 renderPlayScreen : Model -> Html Msg
-renderPlayScreen { game, player1, player2 } =
+renderPlayScreen { game, player1, player2, wall } =
     div
         []
         [ renderHeader
+        , renderWall wall game
         , renderPlayer player1 game
         , renderPlayer player2 game
         ]
+
+
+renderWall : Wall -> Game -> Html Msg
+renderWall wall game =
+    let
+        left =
+            game.x // 2 - wall.width - 2
+    in
+    div
+        [ style
+            [ ( "width", toString wall.width ++ "px" )
+            , ( "height", toString wall.height ++ "px" )
+            , ( "background", "black" )
+            , ( "position", "absolute" )
+            , ( "left", toString left ++ "px" )
+            , ( "bottom", "0" )
+            ]
+        ]
+        []
 
 
 renderPlayer : Player -> Game -> Html Msg
