@@ -123,7 +123,7 @@ initialUi : Ui
 initialUi =
     { windowSize = ( 500, 500 )
     , pressedKeys = Set.empty
-    , screen = PlayScreen
+    , screen = StartScreen
     }
 
 
@@ -450,13 +450,25 @@ handleKeyChange pressed keycode ({ ui, player1, player2 } as model) =
 
         pressedKeys_ =
             fn keycode ui.pressedKeys
+
+        ui_ =
+            { ui | pressedKeys = pressedKeys_ }
     in
     case ui.screen of
-        PlayScreen ->
+        StartScreen ->
             let
-                ui_ =
-                    { ui | pressedKeys = pressedKeys_ }
+                spacebar =
+                    32
+
+                screen_ =
+                    if keyPressed spacebar pressedKeys_ then
+                        PlayScreen
+                    else
+                        StartScreen
             in
+            { model | ui = { ui_ | screen = screen_ } }
+
+        PlayScreen ->
             { model | ui = ui_ }
 
         _ ->
@@ -534,7 +546,7 @@ subscriptions { ui } =
     in
     (case ui.screen of
         StartScreen ->
-            [ window, seconds ]
+            [ window, seconds ] ++ keys
 
         PlayScreen ->
             [ window ] ++ keys ++ animation
