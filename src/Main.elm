@@ -367,17 +367,14 @@ type alias ActiveControls =
 getAiActiveControls : Ball -> Player -> ActiveControls
 getAiActiveControls ball ({ ai } as player) =
     let
+        moveRight =
+            ai.direction (ball.position.x - player.position.x) 15
+
         left_ =
-            if ai.direction player.position.x ball.position.x then
-                True
-            else
-                False
+            not moveRight
 
         right_ =
-            if ai.direction ball.position.x player.position.x && ball.position.x - player.position.x > 15 then
-                True
-            else
-                False
+            moveRight
 
         jump_ =
             if ball.position.y < playerRadius * 2 then
