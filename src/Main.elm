@@ -701,7 +701,7 @@ renderStartScreen model =
 
 renderHeader : Html Msg
 renderHeader =
-    h1 [ style [ ( "text-align", "center" ) ] ] [ text "~ slime volleyball ~" ]
+    h1 [ style [ ( "text-align", "center" ), ( "margin", "48px 0 36px" ) ] ] [ text "~ slime volleyball ~" ]
 
 
 renderPlayScreen : Model -> Html Msg
@@ -743,15 +743,61 @@ renderScore p1 p2 =
                 , ( "display", "inline-block" )
                 ]
             ]
-            [ text (toString p1.score) ]
+            [ renderScoreDots p1.score ]
         , div
             [ style
                 [ ( "width", "50%" )
                 , ( "display", "inline-block" )
                 ]
             ]
-            [ text (toString p2.score) ]
+            [ renderScoreDots p2.score ]
         ]
+
+
+pointsToWin : Int
+pointsToWin =
+    10
+
+
+renderScoreDots : Int -> Html Msg
+renderScoreDots score =
+    let
+        size =
+            20
+
+        background index =
+            if index <= score then
+                "black"
+            else
+                "white"
+
+        makeDot index =
+            div
+                [ style
+                    [ ( "display", "inline-block" )
+                    , ( "width", toString size ++ "px" )
+                    , ( "height", toString size ++ "px" )
+                    , ( "border", "1px solid black" )
+                    , ( "border-radius", toString size ++ "px" )
+                    , ( "background", background index )
+                    ]
+                ]
+                []
+
+        dots =
+            List.range 1 pointsToWin
+                |> List.map makeDot
+    in
+    div
+        [ style
+            [ ( "display", "flex" )
+            , ( "flex-direction", "row" )
+            , ( "justify-content", "space-between" )
+            , ( "padding", toString (size // 2) ++ "px" )
+            , ( "margin", toString size ++ "px 0" )
+            ]
+        ]
+        dots
 
 
 renderWall : Wall -> Game -> Html Msg
