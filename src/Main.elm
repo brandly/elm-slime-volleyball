@@ -116,18 +116,18 @@ initialUi : Ui
 initialUi =
     { windowSize = ( 500, 500 )
     , pressedKeys = Set.empty
-    , screen = StartScreen
+    , screen = PlayScreen
     }
 
 
 initialModel : Model
 initialModel =
-    { player1 = Player "cool" (Coords 10 0) 65 68 87 Color.blue { x = 0, y = 0 }
-    , player2 = Player "lame" (Coords 500 0) 37 39 38 Color.red { x = 0, y = 0 }
+    { player1 = Player "cool" (Coords (containerWidth // 2 - 100) 0) 65 68 87 Color.blue { x = 0, y = 0 }
+    , player2 = Player "lame" (Coords (containerWidth // 2 + 100) 0) 37 39 38 Color.red { x = 0, y = 0 }
     , ui = initialUi
     , game = { x = 500, y = 500 }
     , wall = { height = 50, width = 10 }
-    , ball = Ball (Coords 360 200) (Vector 0 0) 15
+    , ball = Ball (Coords (containerWidth // 2) 200) (Vector 0 0) 15
     }
 
 
@@ -233,16 +233,13 @@ update action ({ ui, player1, player2, game, wall, ball } as model) =
                         |> applyVelocityToBall
                         |> applyCollisionsToBall player1 player2
 
-                screen_ =
+                model_ =
                     if ball.radius > ball.position.y then
-                        GameoverScreen
+                        freshGame model
                     else
-                        PlayScreen
-
-                ui_ =
-                    { ui | screen = screen_ }
+                        { model | player1 = player1_, player2 = player2_, ball = ball_ }
             in
-            ( { model | player1 = player1_, player2 = player2_, ball = ball_, ui = ui_ }, Cmd.none )
+            ( model_, Cmd.none )
 
         StartGame ->
             ( freshGame model, Cmd.none )
@@ -504,7 +501,7 @@ playerSize =
 
 containerWidth : Int
 containerWidth =
-    720
+    600
 
 
 view : Model -> Html Msg
