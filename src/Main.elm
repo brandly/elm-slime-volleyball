@@ -80,12 +80,17 @@ type alias Ai =
     }
 
 
+type alias Controls =
+    { left : KeyCode
+    , right : KeyCode
+    , jump : KeyCode
+    }
+
+
 type alias Player =
     { name : String
     , position : Coords
-    , leftKey : KeyCode
-    , rightKey : KeyCode
-    , jumpKey : KeyCode
+    , controls : Controls
     , color : Color
     , velocity : Vector
     , ai : Ai
@@ -119,6 +124,22 @@ type alias Model =
     }
 
 
+wasdControls : Controls
+wasdControls =
+    { left = 65
+    , right = 68
+    , jump = 87
+    }
+
+
+arrowControls : Controls
+arrowControls =
+    { left = 37
+    , right = 39
+    , jump = 38
+    }
+
+
 initialUi : Ui
 initialUi =
     { windowSize = ( 500, 500 )
@@ -129,8 +150,8 @@ initialUi =
 
 initialModel : Model
 initialModel =
-    { player1 = Player "cool" (Coords (containerWidth // 2 - 100) 0) 65 68 87 Color.blue { x = 0, y = 0 } (Ai True (>))
-    , player2 = Player "lame" (Coords (containerWidth // 2 + 100) 0) 37 39 38 Color.red { x = 0, y = 0 } (Ai False (<))
+    { player1 = Player "cool" (Coords (containerWidth // 2 - 100) 0) wasdControls Color.blue { x = 0, y = 0 } (Ai True (>))
+    , player2 = Player "lame" (Coords (containerWidth // 2 + 100) 0) arrowControls Color.red { x = 0, y = 0 } (Ai False (<))
     , ui = initialUi
     , game = { x = 500, y = 500 }
     , wall = { height = 50, width = 10 }
@@ -196,9 +217,9 @@ update action ({ ui, player1, player2, game, wall, ball } as model) =
                     if player.ai.active then
                         getAiActiveControls ball player
                     else
-                        { left = keyPressed player.leftKey ui.pressedKeys
-                        , right = keyPressed player.rightKey ui.pressedKeys
-                        , jump = keyPressed player.jumpKey ui.pressedKeys
+                        { left = keyPressed player.controls.left ui.pressedKeys
+                        , right = keyPressed player.controls.right ui.pressedKeys
+                        , jump = keyPressed player.controls.jump ui.pressedKeys
                         }
 
                 updatePlayer player =
