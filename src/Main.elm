@@ -808,14 +808,14 @@ renderScore p1 p2 =
                 , ( "display", "inline-block" )
                 ]
             ]
-            [ renderScoreDots p1.score ]
+            [ renderScoreDots p1 ]
         , div
             [ style
                 [ ( "width", "50%" )
                 , ( "display", "inline-block" )
                 ]
             ]
-            [ renderScoreDots p2.score ]
+            [ renderScoreDots p2 ]
         ]
 
 
@@ -824,17 +824,17 @@ pointsToWin =
     10
 
 
-renderScoreDots : Int -> Html Msg
-renderScoreDots score =
+renderScoreDots : Player -> Html Msg
+renderScoreDots player =
     let
         size =
             20
 
         background index =
-            if index <= score then
-                "black"
+            if index <= player.score then
+                player.color
             else
-                "white"
+                Color.white
 
         makeDot index =
             div
@@ -844,7 +844,7 @@ renderScoreDots score =
                     , ( "height", toString size ++ "px" )
                     , ( "border", "1px solid black" )
                     , ( "border-radius", toString size ++ "px" )
-                    , ( "background", background index )
+                    , ( "background", Color.Convert.colorToHex (background index) )
                     ]
                 ]
                 []
