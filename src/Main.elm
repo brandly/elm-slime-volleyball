@@ -29,6 +29,17 @@ main =
 -- MODEL
 
 
+type alias Vector =
+    { x : Float
+    , y : Float
+    }
+
+
+distance : Vector -> Vector -> Float
+distance a b =
+    (b.x - a.x) ^ 2 + (b.y - a.y) ^ 2 |> sqrt
+
+
 type alias Coords =
     { x : Int
     , y : Int
@@ -40,9 +51,9 @@ type alias Player =
     , position : Coords
     , leftKey : KeyCode
     , rightKey : KeyCode
+    , jumpKey : KeyCode
     , color : Color
-
-    --, velocity
+    , velocity : Vector
     }
 
 
@@ -75,8 +86,8 @@ initialUi =
 
 initialModel : Model
 initialModel =
-    { player1 = Player "cool" (Coords 10 0) 65 68 Color.blue
-    , player2 = Player "lame" (Coords 500 0) 37 39 Color.red
+    { player1 = Player "cool" (Coords 10 0) 65 68 87 Color.blue { x = 0, y = 0 }
+    , player2 = Player "lame" (Coords 500 0) 37 39 38 Color.red { x = 0, y = 0 }
     , ui = initialUi
     , game = { x = 500, y = 500 }
     , wall = { height = 50, width = 10 }
@@ -130,17 +141,11 @@ update action ({ ui, player1, player2, game } as model) =
 
         Tick delta ->
             let
-                position1_ =
+                player1_ =
                     applyKeysToPlayerPosition ui.pressedKeys player1 game
 
-                player1_ =
-                    { player1 | position = position1_ }
-
-                position2_ =
-                    applyKeysToPlayerPosition ui.pressedKeys player2 game
-
                 player2_ =
-                    { player2 | position = position2_ }
+                    applyKeysToPlayerPosition ui.pressedKeys player2 game
             in
             ( { model | player1 = player1_, player2 = player2_ }, Cmd.none )
 
@@ -152,14 +157,20 @@ update action ({ ui, player1, player2, game } as model) =
             ( model, Cmd.none )
 
 
-applyKeysToPlayerPosition : PressedKeys -> Player -> Game -> Coords
+applyKeysToPlayerPosition : PressedKeys -> Player -> Game -> Player
 applyKeysToPlayerPosition pressedKeys player game =
     let
+        player_ =
+            applyVelocityToPlayer player
+
         leftPressed =
             keyPressed player.leftKey pressedKeys
 
         rightPressed =
             keyPressed player.rightKey pressedKeys
+
+        position =
+            player_.position
 
         move =
             if leftPressed then
@@ -177,14 +188,35 @@ applyKeysToPlayerPosition pressedKeys player game =
             else
                 position.x + move
 
-        position =
-            player.position
+        position_ =
+            { position | x = x }
     in
-    { position | x = x }
+    { player_ | position = position_ }
+
+
+applyVelocityToPlayer : Player -> Player
+applyVelocityToPlayer ({ position, velocity } as player) =
+    let
+        y_ =
+            max 0 (player.position.y + round velocity.y)
+
+        position_ =
+            { position | y = y_ }
+
+        vy_ =
+            if position_.y > 0 then
+                velocity.y - 1.0
+            else
+                velocity.y
+
+        velocity_ =
+            { velocity | y = vy_ }
+    in
+    { player | velocity = velocity_, position = position_ }
 
 
 handleKeyChange : Bool -> KeyCode -> Model -> Model
-handleKeyChange pressed keycode ({ ui } as model) =
+handleKeyChange pressed keycode ({ ui, player1, player2 } as model) =
     let
         fn =
             if pressed then
@@ -194,11 +226,61 @@ handleKeyChange pressed keycode ({ ui } as model) =
 
         pressedKeys_ =
             fn keycode ui.pressedKeys
-
-        ui_ =
-            { ui | pressedKeys = pressedKeys_ }
     in
-    { model | ui = ui_ }
+    case ui.screen of
+        PlayScreen ->
+            let
+                justPressed keycode =
+                    freshKeyPress keycode ui.pressedKeys pressedKeys_
+
+                maybeJump player =
+                    if justPressed player.jumpKey then
+                        jump player
+                    else
+                        player
+
+                player1_ =
+                    maybeJump player1
+
+                player2_ =
+                    maybeJump player2
+
+                ui_ =
+                    { ui | pressedKeys = pressedKeys_ }
+            in
+            { model | ui = ui_, player1 = player1_, player2 = player2_ }
+
+        _ ->
+            model
+
+
+jumpVelocity : Float
+jumpVelocity =
+    10.0
+
+
+jump : Player -> Player
+jump ({ position, velocity } as player) =
+    let
+        vy =
+            if position.y == 0 then
+                jumpVelocity
+            else
+                velocity.y
+
+        velocity_ =
+            { velocity | y = vy }
+    in
+    { player | velocity = velocity_ }
+
+
+freshKeyPress : KeyCode -> Set KeyCode -> Set KeyCode -> Bool
+freshKeyPress keycode previouslyPressedKeys currentlyPressedKeys =
+    let
+        pressed =
+            keyPressed keycode
+    in
+    pressed currentlyPressedKeys && not (pressed previouslyPressedKeys)
 
 
 keyPressed : KeyCode -> PressedKeys -> Bool
@@ -270,12 +352,23 @@ initialWindowSizeCommand =
 
 
 -- VIEW
+-- TODO: how do we scale this based on window/game size? move into Player model?
+
+
+ballRadius : Int
+ballRadius =
+    10
+
+
+playerRadius : Int
+playerRadius =
+    25
 
 
 playerSize : Coords
 playerSize =
-    { x = 50
-    , y = 25
+    { x = playerRadius * 2
+    , y = playerRadius
     }
 
 
