@@ -10384,9 +10384,9 @@ var _user$project$Main$renderWall = F2(
 			{ctor: '[]'});
 	});
 var _user$project$Main$pointsToWin = 10;
-var _user$project$Main$renderScoreDots = function (score) {
+var _user$project$Main$renderScoreDots = function (player) {
 	var background = function (index) {
-		return (_elm_lang$core$Native_Utils.cmp(index, score) < 1) ? 'black' : 'white';
+		return (_elm_lang$core$Native_Utils.cmp(index, player.score) < 1) ? player.color : _elm_lang$core$Color$white;
 	};
 	var size = 20;
 	var makeDot = function (index) {
@@ -10436,7 +10436,8 @@ var _user$project$Main$renderScoreDots = function (score) {
 											_0: {
 												ctor: '_Tuple2',
 												_0: 'background',
-												_1: background(index)
+												_1: _eskimoblood$elm_color_extra$Color_Convert$colorToHex(
+													background(index))
 											},
 											_1: {ctor: '[]'}
 										}
@@ -10531,7 +10532,7 @@ var _user$project$Main$renderScore = F2(
 					},
 					{
 						ctor: '::',
-						_0: _user$project$Main$renderScoreDots(p1.score),
+						_0: _user$project$Main$renderScoreDots(p1),
 						_1: {ctor: '[]'}
 					}),
 				_1: {
@@ -10554,7 +10555,7 @@ var _user$project$Main$renderScore = F2(
 						},
 						{
 							ctor: '::',
-							_0: _user$project$Main$renderScoreDots(p2.score),
+							_0: _user$project$Main$renderScoreDots(p2),
 							_1: {ctor: '[]'}
 						}),
 					_1: {ctor: '[]'}
