@@ -131,19 +131,30 @@ type alias Model =
     }
 
 
+keyMap =
+    { w = 87
+    , a = 65
+    , d = 68
+    , leftArrow = 37
+    , rightArrow = 39
+    , upArrow = 38
+    , spacebar = 32
+    }
+
+
 wasdControls : Controls
 wasdControls =
-    { left = 65
-    , right = 68
-    , jump = 87
+    { left = keyMap.a
+    , right = keyMap.d
+    , jump = keyMap.w
     }
 
 
 arrowControls : Controls
 arrowControls =
-    { left = 37
-    , right = 39
-    , jump = 38
+    { left = keyMap.leftArrow
+    , right = keyMap.rightArrow
+    , jump = keyMap.upArrow
     }
 
 
@@ -565,26 +576,22 @@ handleKeyChange pressed keycode ({ ui, player1, player2 } as model) =
 
         ui_ =
             { ui | pressedKeys = pressedKeys_ }
+
+        screen_ =
+            if keyPressed keyMap.spacebar pressedKeys_ then
+                PlayScreen
+            else
+                ui_.screen
     in
     case ui.screen of
         StartScreen ->
-            let
-                spacebar =
-                    32
-
-                screen_ =
-                    if keyPressed spacebar pressedKeys_ then
-                        PlayScreen
-                    else
-                        StartScreen
-            in
             { model | ui = { ui_ | screen = screen_ } }
 
         PlayScreen ->
             { model | ui = ui_ }
 
-        _ ->
-            model
+        GameoverScreen ->
+            { model | ui = { ui_ | screen = screen_ } }
 
 
 jumpVelocity : Float
