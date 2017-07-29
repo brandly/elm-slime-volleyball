@@ -186,7 +186,7 @@ update action ({ ui, player1, player2, game, wall, ball } as model) =
         Tick delta ->
             let
                 maybeJump player =
-                    if keyPressed player.jumpKey ui.pressedKeys && player.position.y == 0 then
+                    if (getActiveControlsForPlayer player).jump && player.position.y == 0 then
                         jump player
                     else
                         player
@@ -378,10 +378,16 @@ getAiActiveControls ball ({ ai } as player) =
                 True
             else
                 False
+
+        jump_ =
+            if ball.position.y < playerRadius * 2 then
+                True
+            else
+                False
     in
     { left = left_
     , right = right_
-    , jump = False
+    , jump = jump_
     }
 
 
