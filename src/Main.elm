@@ -74,6 +74,12 @@ type alias Coords =
     }
 
 
+type alias Ai =
+    { active : Bool
+    , direction : Int -> Int -> Bool
+    }
+
+
 type alias Player =
     { name : String
     , position : Coords
@@ -82,6 +88,7 @@ type alias Player =
     , jumpKey : KeyCode
     , color : Color
     , velocity : Vector
+    , ai : Ai
     }
 
 
@@ -122,8 +129,8 @@ initialUi =
 
 initialModel : Model
 initialModel =
-    { player1 = Player "cool" (Coords (containerWidth // 2 - 100) 0) 65 68 87 Color.blue { x = 0, y = 0 }
-    , player2 = Player "lame" (Coords (containerWidth // 2 + 100) 0) 37 39 38 Color.red { x = 0, y = 0 }
+    { player1 = Player "cool" (Coords (containerWidth // 2 - 100) 0) 65 68 87 Color.blue { x = 0, y = 0 } (Ai True (>))
+    , player2 = Player "lame" (Coords (containerWidth // 2 + 100) 0) 37 39 38 Color.red { x = 0, y = 0 } (Ai False (<))
     , ui = initialUi
     , game = { x = 500, y = 500 }
     , wall = { height = 50, width = 10 }
@@ -184,10 +191,20 @@ update action ({ ui, player1, player2, game, wall, ball } as model) =
                     else
                         player
 
+                getActiveControlsForPlayer : Player -> ActiveControls
+                getActiveControlsForPlayer player =
+                    if player.ai.active then
+                        getAiActiveControls ball player
+                    else
+                        { left = keyPressed player.leftKey ui.pressedKeys
+                        , right = keyPressed player.rightKey ui.pressedKeys
+                        , jump = keyPressed player.jumpKey ui.pressedKeys
+                        }
+
                 updatePlayer player =
                     player
                         |> maybeJump
-                        |> applyKeysToPlayerPosition ui.pressedKeys wall game
+                        |> (\p -> applyControlsToPlayerPosition game (getActiveControlsForPlayer p) p)
 
                 wallPos : Int
                 wallPos =
@@ -314,25 +331,19 @@ getUnitNormal a b =
     divide normalVector (magnitude normalVector)
 
 
-applyKeysToPlayerPosition : PressedKeys -> Wall -> Game -> Player -> Player
-applyKeysToPlayerPosition pressedKeys wall game player =
+applyControlsToPlayerPosition : Game -> ActiveControls -> Player -> Player
+applyControlsToPlayerPosition game active player =
     let
         player_ =
             applyVelocityToPlayer player
-
-        leftPressed =
-            keyPressed player.leftKey pressedKeys
-
-        rightPressed =
-            keyPressed player.rightKey pressedKeys
 
         position =
             player_.position
 
         move =
-            if leftPressed then
+            if active.left then
                 -5
-            else if rightPressed then
+            else if active.right then
                 5
             else
                 0
@@ -344,6 +355,34 @@ applyKeysToPlayerPosition pressedKeys wall game player =
             { position | x = x }
     in
     { player_ | position = position_ }
+
+
+type alias ActiveControls =
+    { left : Bool
+    , right : Bool
+    , jump : Bool
+    }
+
+
+getAiActiveControls : Ball -> Player -> ActiveControls
+getAiActiveControls ball ({ ai } as player) =
+    let
+        left_ =
+            if ai.direction player.position.x ball.position.x then
+                True
+            else
+                False
+
+        right_ =
+            if ai.direction ball.position.x player.position.x && ball.position.x - player.position.x > 15 then
+                True
+            else
+                False
+    in
+    { left = left_
+    , right = right_
+    , jump = False
+    }
 
 
 applyGameBoundaries : Game -> Coords -> Int
