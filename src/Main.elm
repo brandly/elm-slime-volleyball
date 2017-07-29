@@ -577,8 +577,11 @@ handleKeyChange pressed keycode ({ ui, player1, player2 } as model) =
         ui_ =
             { ui | pressedKeys = pressedKeys_ }
 
+        spacebarPressed =
+            keyPressed keyMap.spacebar pressedKeys_
+
         screen_ =
-            if keyPressed keyMap.spacebar pressedKeys_ then
+            if spacebarPressed then
                 PlayScreen
             else
                 ui_.screen
@@ -591,7 +594,14 @@ handleKeyChange pressed keycode ({ ui, player1, player2 } as model) =
             { model | ui = ui_ }
 
         GameoverScreen ->
-            { model | ui = { ui_ | screen = screen_ } }
+            let
+                model_ =
+                    if spacebarPressed then
+                        freshGame model
+                    else
+                        model
+            in
+            { model_ | ui = { ui_ | screen = screen_ } }
 
 
 jumpVelocity : Float
