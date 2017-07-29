@@ -232,6 +232,7 @@ update action ({ ui, player1, player2, game, wall, ball } as model) =
                     ball
                         |> applyVelocityToBall
                         |> applyCollisionsToBall player1 player2
+                        |> applyGameBoundariesToBall game
 
                 model_ =
                     if ball.radius > ball.position.y then
@@ -337,17 +338,42 @@ applyKeysToPlayerPosition pressedKeys wall game player =
                 0
 
         x =
-            if position.x + move < playerRadius then
-                playerRadius
-            else if position.x + move > game.x - playerRadius then
-                game.x - playerRadius
-            else
-                position.x + move
+            applyGameBoundaries game { position | x = position.x + move }
 
         position_ =
             { position | x = x }
     in
     { player_ | position = position_ }
+
+
+applyGameBoundaries : Game -> Coords -> Int
+applyGameBoundaries game position =
+    if position.x < playerRadius then
+        playerRadius
+    else if position.x > game.x - playerRadius then
+        game.x - playerRadius
+    else
+        position.x
+
+
+applyGameBoundariesToBall : Game -> Ball -> Ball
+applyGameBoundariesToBall game ({ position, radius, velocity } as ball) =
+    let
+        hitBoundaries =
+            if position.x < radius then
+                True
+            else if position.x > game.x - radius then
+                True
+            else
+                False
+
+        x_ =
+            if hitBoundaries then
+                velocity.x * -1
+            else
+                velocity.x
+    in
+    { ball | velocity = { velocity | x = x_ } }
 
 
 applyVelocityToPlayer : Player -> Player
