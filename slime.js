@@ -10403,12 +10403,190 @@ var _user$project$Main$renderHeader = A2(
 var _user$project$Main$containerWidth = 600;
 var _user$project$Main$playerRadius = 40;
 var _user$project$Main$playerSize = {x: _user$project$Main$playerRadius * 2, y: _user$project$Main$playerRadius};
-var _user$project$Main$renderPlayer = F2(
-	function (player, game) {
-		var top = A3(_user$project$Main$gameY, game, _user$project$Main$playerRadius, player.position);
-		var _p1 = player.position;
-		var x = _p1.x;
-		var y = _p1.y;
+var _user$project$Main$keyPressed = F2(
+	function (keycode, pressedKeys) {
+		return A2(_elm_lang$core$Set$member, keycode, pressedKeys);
+	});
+var _user$project$Main$jumpVelocity = 10.0;
+var _user$project$Main$jump = function (_p1) {
+	var _p2 = _p1;
+	var _p3 = _p2.velocity;
+	var vy = _elm_lang$core$Native_Utils.eq(_p2.position.y, 0) ? _user$project$Main$jumpVelocity : _p3.y;
+	var velocity_ = _elm_lang$core$Native_Utils.update(
+		_p3,
+		{y: vy});
+	return _elm_lang$core$Native_Utils.update(
+		_p2,
+		{velocity: velocity_});
+};
+var _user$project$Main$applyVelocityToPlayer = function (_p4) {
+	var _p5 = _p4;
+	var _p7 = _p5.velocity;
+	var _p6 = _p5;
+	var y_ = A2(
+		_elm_lang$core$Basics$max,
+		0,
+		_p6.position.y + _elm_lang$core$Basics$round(_p7.y));
+	var position_ = _elm_lang$core$Native_Utils.update(
+		_p5.position,
+		{y: y_});
+	var vy_ = (_elm_lang$core$Native_Utils.cmp(position_.y, 0) > 0) ? (_p7.y - 1.0) : _p7.y;
+	var velocity_ = _elm_lang$core$Native_Utils.update(
+		_p7,
+		{y: vy_});
+	return _elm_lang$core$Native_Utils.update(
+		_p6,
+		{velocity: velocity_, position: position_});
+};
+var _user$project$Main$applyGameBoundariesToBall = F2(
+	function (game, _p8) {
+		var _p9 = _p8;
+		var _p12 = _p9.velocity;
+		var _p11 = _p9.radius;
+		var _p10 = _p9.position;
+		var hitBoundaries = (_elm_lang$core$Native_Utils.cmp(_p10.x, _p11) < 0) ? true : ((_elm_lang$core$Native_Utils.cmp(_p10.x, game.x - _p11) > 0) ? true : false);
+		var x_ = hitBoundaries ? (_p12.x * -1) : _p12.x;
+		return _elm_lang$core$Native_Utils.update(
+			_p9,
+			{
+				velocity: _elm_lang$core$Native_Utils.update(
+					_p12,
+					{x: x_})
+			});
+	});
+var _user$project$Main$applyGameBoundaries = F2(
+	function (game, position) {
+		return (_elm_lang$core$Native_Utils.cmp(position.x, _user$project$Main$playerRadius) < 0) ? _user$project$Main$playerRadius : ((_elm_lang$core$Native_Utils.cmp(position.x, game.x - _user$project$Main$playerRadius) > 0) ? (game.x - _user$project$Main$playerRadius) : position.x);
+	});
+var _user$project$Main$getAiActiveControls = F2(
+	function (ball, _p13) {
+		var _p14 = _p13;
+		var jump_ = (_elm_lang$core$Native_Utils.cmp(ball.position.y, _user$project$Main$playerRadius * 2) < 0) ? true : false;
+		var moveRight = A2(_p14.ai.direction, ball.position.x - _p14.position.x, 15);
+		var left_ = !moveRight;
+		var right_ = moveRight;
+		return {left: left_, right: right_, jump: jump_};
+	});
+var _user$project$Main$applyControlsToPlayerPosition = F3(
+	function (game, active, player) {
+		var move = active.left ? -5 : (active.right ? 5 : 0);
+		var player_ = _user$project$Main$applyVelocityToPlayer(player);
+		var position = player_.position;
+		var x = A2(
+			_user$project$Main$applyGameBoundaries,
+			game,
+			_elm_lang$core$Native_Utils.update(
+				position,
+				{x: position.x + move}));
+		var position_ = _elm_lang$core$Native_Utils.update(
+			position,
+			{x: x});
+		return _elm_lang$core$Native_Utils.update(
+			player_,
+			{position: position_});
+	});
+var _user$project$Main$applyVelocityToBall = function (_p15) {
+	var _p16 = _p15;
+	var _p18 = _p16.velocity;
+	var _p17 = _p16.position;
+	var velocity_ = _elm_lang$core$Native_Utils.update(
+		_p18,
+		{y: _p18.y - 0.3});
+	var position_ = _elm_lang$core$Native_Utils.update(
+		_p17,
+		{
+			x: _p17.x + _elm_lang$core$Basics$round(_p18.x),
+			y: _p17.y + _elm_lang$core$Basics$round(_p18.y)
+		});
+	return _elm_lang$core$Native_Utils.update(
+		_p16,
+		{position: position_, velocity: velocity_});
+};
+var _user$project$Main$toVector = function (coords) {
+	return _elm_lang$core$Native_Utils.update(
+		coords,
+		{
+			x: _elm_lang$core$Basics$toFloat(coords.x),
+			y: _elm_lang$core$Basics$toFloat(coords.y)
+		});
+};
+var _user$project$Main$toNormalVector = F2(
+	function (v1, v2) {
+		return {x: v2.x - v1.x, y: v2.y - v1.y};
+	});
+var _user$project$Main$distance = F2(
+	function (a, b) {
+		return _elm_lang$core$Basics$sqrt(
+			Math.pow(b.x - a.x, 2) + Math.pow(b.y - a.y, 2));
+	});
+var _user$project$Main$times = F2(
+	function (vec, scalar) {
+		return {x: vec.x * scalar, y: vec.y * scalar};
+	});
+var _user$project$Main$divide = F2(
+	function (vec, scalar) {
+		return A2(_user$project$Main$times, vec, 1 / scalar);
+	});
+var _user$project$Main$Vector = F2(
+	function (a, b) {
+		return {x: a, y: b};
+	});
+var _user$project$Main$magnitude = _user$project$Main$distance(
+	A2(_user$project$Main$Vector, 0, 0));
+var _user$project$Main$getUnitNormal = F2(
+	function (a, b) {
+		var normalVector = A2(_user$project$Main$toNormalVector, a, b);
+		var gap = A2(_user$project$Main$distance, a, b);
+		return A2(
+			_user$project$Main$divide,
+			normalVector,
+			_user$project$Main$magnitude(normalVector));
+	});
+var _user$project$Main$collideWithPlayer = F2(
+	function (player, _p19) {
+		var _p20 = _p19;
+		var _p21 = _p20;
+		var vBallPosition = _user$project$Main$toVector(_p21.position);
+		var vPlayerPosition = _user$project$Main$toVector(player.position);
+		var gap = A2(_user$project$Main$distance, vPlayerPosition, vBallPosition);
+		var didCollide = _elm_lang$core$Native_Utils.cmp(
+			_elm_lang$core$Basics$round(gap),
+			_user$project$Main$playerRadius + _p21.radius) < 0;
+		var unitNormal = A2(_user$project$Main$getUnitNormal, vPlayerPosition, vBallPosition);
+		var scaledNormal = A2(
+			_user$project$Main$times,
+			unitNormal,
+			_user$project$Main$magnitude(_p21.velocity));
+		var velocity_ = didCollide ? scaledNormal : _p20.velocity;
+		return _elm_lang$core$Native_Utils.update(
+			_p21,
+			{velocity: velocity_});
+	});
+var _user$project$Main$applyCollisionsToBall = F3(
+	function (p1, p2, _p22) {
+		var _p23 = _p22;
+		return A2(
+			_user$project$Main$collideWithPlayer,
+			p2,
+			A2(_user$project$Main$collideWithPlayer, p1, _p23));
+	});
+var _user$project$Main$renderPlayer = F3(
+	function (player, ball, game) {
+		var eyeRadius = 8;
+		var pupilRadius = (eyeRadius / 2) | 0;
+		var scalar = 0.8;
+		var scaledPlayerRadius = scalar * _elm_lang$core$Basics$toFloat(_user$project$Main$playerRadius);
+		var unitNormal = A2(
+			_user$project$Main$getUnitNormal,
+			_user$project$Main$toVector(player.position),
+			_user$project$Main$toVector(ball.position));
+		var scaledEyeVector = A2(_user$project$Main$times, unitNormal, scaledPlayerRadius);
+		var eyeX = (scaledEyeVector.x + _elm_lang$core$Basics$toFloat(_user$project$Main$playerRadius)) - _elm_lang$core$Basics$toFloat(eyeRadius);
+		var eyeY = _elm_lang$core$Basics$toFloat(_user$project$Main$playerRadius) - scaledEyeVector.y;
+		var playerTop = A3(_user$project$Main$gameY, game, _user$project$Main$playerRadius, player.position);
+		var _p24 = player.position;
+		var x = _p24.x;
+		var y = _p24.y;
 		return A2(
 			_elm_lang$html$Html$div,
 			{
@@ -10446,7 +10624,7 @@ var _user$project$Main$renderPlayer = F2(
 													'px, ',
 													A2(
 														_elm_lang$core$Basics_ops['++'],
-														_elm_lang$core$Basics$toString(top),
+														_elm_lang$core$Basics$toString(playerTop),
 														'px)'))))
 									},
 									_1: {
@@ -10508,11 +10686,164 @@ var _user$project$Main$renderPlayer = F2(
 					}),
 				_1: {ctor: '[]'}
 			},
-			{ctor: '[]'});
+			{
+				ctor: '::',
+				_0: A2(
+					_elm_lang$html$Html$div,
+					{
+						ctor: '::',
+						_0: _elm_lang$html$Html_Attributes$style(
+							{
+								ctor: '::',
+								_0: {ctor: '_Tuple2', _0: 'position', _1: 'absolute'},
+								_1: {
+									ctor: '::',
+									_0: {
+										ctor: '_Tuple2',
+										_0: 'left',
+										_1: A2(
+											_elm_lang$core$Basics_ops['++'],
+											_elm_lang$core$Basics$toString(eyeX),
+											'px')
+									},
+									_1: {
+										ctor: '::',
+										_0: {
+											ctor: '_Tuple2',
+											_0: 'top',
+											_1: A2(
+												_elm_lang$core$Basics_ops['++'],
+												_elm_lang$core$Basics$toString(eyeY),
+												'px')
+										},
+										_1: {
+											ctor: '::',
+											_0: {
+												ctor: '_Tuple2',
+												_0: 'width',
+												_1: A2(
+													_elm_lang$core$Basics_ops['++'],
+													_elm_lang$core$Basics$toString(eyeRadius * 2),
+													'px')
+											},
+											_1: {
+												ctor: '::',
+												_0: {
+													ctor: '_Tuple2',
+													_0: 'height',
+													_1: A2(
+														_elm_lang$core$Basics_ops['++'],
+														_elm_lang$core$Basics$toString(eyeRadius * 2),
+														'px')
+												},
+												_1: {
+													ctor: '::',
+													_0: {ctor: '_Tuple2', _0: 'background', _1: 'white'},
+													_1: {
+														ctor: '::',
+														_0: {
+															ctor: '_Tuple2',
+															_0: 'border-radius',
+															_1: A2(
+																_elm_lang$core$Basics_ops['++'],
+																_elm_lang$core$Basics$toString(eyeRadius),
+																'px')
+														},
+														_1: {ctor: '[]'}
+													}
+												}
+											}
+										}
+									}
+								}
+							}),
+						_1: {ctor: '[]'}
+					},
+					{
+						ctor: '::',
+						_0: A2(
+							_elm_lang$html$Html$div,
+							{
+								ctor: '::',
+								_0: _elm_lang$html$Html_Attributes$style(
+									{
+										ctor: '::',
+										_0: {ctor: '_Tuple2', _0: 'background', _1: 'black'},
+										_1: {
+											ctor: '::',
+											_0: {
+												ctor: '_Tuple2',
+												_0: 'width',
+												_1: A2(
+													_elm_lang$core$Basics_ops['++'],
+													_elm_lang$core$Basics$toString(pupilRadius * 2),
+													'px')
+											},
+											_1: {
+												ctor: '::',
+												_0: {
+													ctor: '_Tuple2',
+													_0: 'height',
+													_1: A2(
+														_elm_lang$core$Basics_ops['++'],
+														_elm_lang$core$Basics$toString(pupilRadius * 2),
+														'px')
+												},
+												_1: {
+													ctor: '::',
+													_0: {
+														ctor: '_Tuple2',
+														_0: 'border-radius',
+														_1: A2(
+															_elm_lang$core$Basics_ops['++'],
+															_elm_lang$core$Basics$toString(pupilRadius),
+															'px')
+													},
+													_1: {
+														ctor: '::',
+														_0: {ctor: '_Tuple2', _0: 'position', _1: 'absolute'},
+														_1: {
+															ctor: '::',
+															_0: {
+																ctor: '_Tuple2',
+																_0: 'left',
+																_1: A2(
+																	_elm_lang$core$Basics_ops['++'],
+																	_elm_lang$core$Basics$toString(
+																		_elm_lang$core$Basics$toFloat(eyeRadius) - _elm_lang$core$Basics$toFloat(pupilRadius)),
+																	'px')
+															},
+															_1: {
+																ctor: '::',
+																_0: {
+																	ctor: '_Tuple2',
+																	_0: 'bottom',
+																	_1: A2(
+																		_elm_lang$core$Basics_ops['++'],
+																		_elm_lang$core$Basics$toString(
+																			_elm_lang$core$Basics$toFloat(eyeRadius) - _elm_lang$core$Basics$toFloat(pupilRadius)),
+																		'px')
+																},
+																_1: {ctor: '[]'}
+															}
+														}
+													}
+												}
+											}
+										}
+									}),
+								_1: {ctor: '[]'}
+							},
+							{ctor: '[]'}),
+						_1: {ctor: '[]'}
+					}),
+				_1: {ctor: '[]'}
+			});
 	});
-var _user$project$Main$renderPlayScreen = function (_p2) {
-	var _p3 = _p2;
-	var _p4 = _p3.game;
+var _user$project$Main$renderPlayScreen = function (_p25) {
+	var _p26 = _p25;
+	var _p28 = _p26.game;
+	var _p27 = _p26.ball;
 	return A2(
 		_elm_lang$html$Html$div,
 		{ctor: '[]'},
@@ -10521,16 +10852,16 @@ var _user$project$Main$renderPlayScreen = function (_p2) {
 			_0: _user$project$Main$renderHeader,
 			_1: {
 				ctor: '::',
-				_0: A2(_user$project$Main$renderWall, _p3.wall, _p4),
+				_0: A2(_user$project$Main$renderWall, _p26.wall, _p28),
 				_1: {
 					ctor: '::',
-					_0: A2(_user$project$Main$renderPlayer, _p3.player1, _p4),
+					_0: A3(_user$project$Main$renderPlayer, _p26.player1, _p27, _p28),
 					_1: {
 						ctor: '::',
-						_0: A2(_user$project$Main$renderPlayer, _p3.player2, _p4),
+						_0: A3(_user$project$Main$renderPlayer, _p26.player2, _p27, _p28),
 						_1: {
 							ctor: '::',
-							_0: A2(_user$project$Main$renderBall, _p3.ball, _p4),
+							_0: A2(_user$project$Main$renderBall, _p27, _p28),
 							_1: {ctor: '[]'}
 						}
 					}
@@ -10538,192 +10869,6 @@ var _user$project$Main$renderPlayScreen = function (_p2) {
 			}
 		});
 };
-var _user$project$Main$keyPressed = F2(
-	function (keycode, pressedKeys) {
-		return A2(_elm_lang$core$Set$member, keycode, pressedKeys);
-	});
-var _user$project$Main$jumpVelocity = 10.0;
-var _user$project$Main$jump = function (_p5) {
-	var _p6 = _p5;
-	var _p7 = _p6.velocity;
-	var vy = _elm_lang$core$Native_Utils.eq(_p6.position.y, 0) ? _user$project$Main$jumpVelocity : _p7.y;
-	var velocity_ = _elm_lang$core$Native_Utils.update(
-		_p7,
-		{y: vy});
-	return _elm_lang$core$Native_Utils.update(
-		_p6,
-		{velocity: velocity_});
-};
-var _user$project$Main$handleKeyChange = F3(
-	function (pressed, keycode, _p8) {
-		var _p9 = _p8;
-		var _p12 = _p9.ui;
-		var _p11 = _p9;
-		var fn = pressed ? _elm_lang$core$Set$insert : _elm_lang$core$Set$remove;
-		var pressedKeys_ = A2(fn, keycode, _p12.pressedKeys);
-		var _p10 = _p12.screen;
-		if (_p10.ctor === 'PlayScreen') {
-			var ui_ = _elm_lang$core$Native_Utils.update(
-				_p12,
-				{pressedKeys: pressedKeys_});
-			return _elm_lang$core$Native_Utils.update(
-				_p11,
-				{ui: ui_});
-		} else {
-			return _p11;
-		}
-	});
-var _user$project$Main$applyVelocityToPlayer = function (_p13) {
-	var _p14 = _p13;
-	var _p16 = _p14.velocity;
-	var _p15 = _p14;
-	var y_ = A2(
-		_elm_lang$core$Basics$max,
-		0,
-		_p15.position.y + _elm_lang$core$Basics$round(_p16.y));
-	var position_ = _elm_lang$core$Native_Utils.update(
-		_p14.position,
-		{y: y_});
-	var vy_ = (_elm_lang$core$Native_Utils.cmp(position_.y, 0) > 0) ? (_p16.y - 1.0) : _p16.y;
-	var velocity_ = _elm_lang$core$Native_Utils.update(
-		_p16,
-		{y: vy_});
-	return _elm_lang$core$Native_Utils.update(
-		_p15,
-		{velocity: velocity_, position: position_});
-};
-var _user$project$Main$applyGameBoundariesToBall = F2(
-	function (game, _p17) {
-		var _p18 = _p17;
-		var _p21 = _p18.velocity;
-		var _p20 = _p18.radius;
-		var _p19 = _p18.position;
-		var hitBoundaries = (_elm_lang$core$Native_Utils.cmp(_p19.x, _p20) < 0) ? true : ((_elm_lang$core$Native_Utils.cmp(_p19.x, game.x - _p20) > 0) ? true : false);
-		var x_ = hitBoundaries ? (_p21.x * -1) : _p21.x;
-		return _elm_lang$core$Native_Utils.update(
-			_p18,
-			{
-				velocity: _elm_lang$core$Native_Utils.update(
-					_p21,
-					{x: x_})
-			});
-	});
-var _user$project$Main$applyGameBoundaries = F2(
-	function (game, position) {
-		return (_elm_lang$core$Native_Utils.cmp(position.x, _user$project$Main$playerRadius) < 0) ? _user$project$Main$playerRadius : ((_elm_lang$core$Native_Utils.cmp(position.x, game.x - _user$project$Main$playerRadius) > 0) ? (game.x - _user$project$Main$playerRadius) : position.x);
-	});
-var _user$project$Main$getAiActiveControls = F2(
-	function (ball, _p22) {
-		var _p23 = _p22;
-		var jump_ = (_elm_lang$core$Native_Utils.cmp(ball.position.y, _user$project$Main$playerRadius * 2) < 0) ? true : false;
-		var moveRight = A2(_p23.ai.direction, ball.position.x - _p23.position.x, 15);
-		var left_ = !moveRight;
-		var right_ = moveRight;
-		return {left: left_, right: right_, jump: jump_};
-	});
-var _user$project$Main$applyControlsToPlayerPosition = F3(
-	function (game, active, player) {
-		var move = active.left ? -5 : (active.right ? 5 : 0);
-		var player_ = _user$project$Main$applyVelocityToPlayer(player);
-		var position = player_.position;
-		var x = A2(
-			_user$project$Main$applyGameBoundaries,
-			game,
-			_elm_lang$core$Native_Utils.update(
-				position,
-				{x: position.x + move}));
-		var position_ = _elm_lang$core$Native_Utils.update(
-			position,
-			{x: x});
-		return _elm_lang$core$Native_Utils.update(
-			player_,
-			{position: position_});
-	});
-var _user$project$Main$applyVelocityToBall = function (_p24) {
-	var _p25 = _p24;
-	var _p27 = _p25.velocity;
-	var _p26 = _p25.position;
-	var velocity_ = _elm_lang$core$Native_Utils.update(
-		_p27,
-		{y: _p27.y - 0.3});
-	var position_ = _elm_lang$core$Native_Utils.update(
-		_p26,
-		{
-			x: _p26.x + _elm_lang$core$Basics$round(_p27.x),
-			y: _p26.y + _elm_lang$core$Basics$round(_p27.y)
-		});
-	return _elm_lang$core$Native_Utils.update(
-		_p25,
-		{position: position_, velocity: velocity_});
-};
-var _user$project$Main$toVector = function (coords) {
-	return _elm_lang$core$Native_Utils.update(
-		coords,
-		{
-			x: _elm_lang$core$Basics$toFloat(coords.x),
-			y: _elm_lang$core$Basics$toFloat(coords.y)
-		});
-};
-var _user$project$Main$toNormalVector = F2(
-	function (v1, v2) {
-		return {x: v2.x - v1.x, y: v2.y - v1.y};
-	});
-var _user$project$Main$distance = F2(
-	function (a, b) {
-		return _elm_lang$core$Basics$sqrt(
-			Math.pow(b.x - a.x, 2) + Math.pow(b.y - a.y, 2));
-	});
-var _user$project$Main$times = F2(
-	function (vec, scalar) {
-		return {x: vec.x * scalar, y: vec.y * scalar};
-	});
-var _user$project$Main$divide = F2(
-	function (vec, scalar) {
-		return A2(_user$project$Main$times, vec, 1 / scalar);
-	});
-var _user$project$Main$Vector = F2(
-	function (a, b) {
-		return {x: a, y: b};
-	});
-var _user$project$Main$magnitude = _user$project$Main$distance(
-	A2(_user$project$Main$Vector, 0, 0));
-var _user$project$Main$getUnitNormal = F2(
-	function (a, b) {
-		var normalVector = A2(_user$project$Main$toNormalVector, a, b);
-		var gap = A2(_user$project$Main$distance, a, b);
-		return A2(
-			_user$project$Main$divide,
-			normalVector,
-			_user$project$Main$magnitude(normalVector));
-	});
-var _user$project$Main$collideWithPlayer = F2(
-	function (player, _p28) {
-		var _p29 = _p28;
-		var _p30 = _p29;
-		var vBallPosition = _user$project$Main$toVector(_p30.position);
-		var vPlayerPosition = _user$project$Main$toVector(player.position);
-		var gap = A2(_user$project$Main$distance, vPlayerPosition, vBallPosition);
-		var didCollide = _elm_lang$core$Native_Utils.cmp(
-			_elm_lang$core$Basics$round(gap),
-			_user$project$Main$playerRadius + _p30.radius) < 0;
-		var unitNormal = A2(_user$project$Main$getUnitNormal, vPlayerPosition, vBallPosition);
-		var scaledNormal = A2(
-			_user$project$Main$times,
-			unitNormal,
-			_user$project$Main$magnitude(_p30.velocity));
-		var velocity_ = didCollide ? scaledNormal : _p29.velocity;
-		return _elm_lang$core$Native_Utils.update(
-			_p30,
-			{velocity: velocity_});
-	});
-var _user$project$Main$applyCollisionsToBall = F3(
-	function (p1, p2, _p31) {
-		var _p32 = _p31;
-		return A2(
-			_user$project$Main$collideWithPlayer,
-			p2,
-			A2(_user$project$Main$collideWithPlayer, p1, _p32));
-	});
 var _user$project$Main$Coords = F2(
 	function (a, b) {
 		return {x: a, y: b};
@@ -10839,9 +10984,9 @@ var _user$project$Main$renderStartScreen = function (model) {
 			}
 		});
 };
-var _user$project$Main$view = function (_p33) {
-	var _p34 = _p33;
-	var _p36 = _p34;
+var _user$project$Main$view = function (_p29) {
+	var _p30 = _p29;
+	var _p32 = _p30;
 	return A2(
 		_elm_lang$html$Html$div,
 		{
@@ -10873,7 +11018,7 @@ var _user$project$Main$view = function (_p33) {
 										_0: 'height',
 										_1: A2(
 											_elm_lang$core$Basics_ops['++'],
-											_elm_lang$core$Basics$toString(_p34.game.y),
+											_elm_lang$core$Basics$toString(_p30.game.y),
 											'px')
 									},
 									_1: {
@@ -10899,12 +11044,12 @@ var _user$project$Main$view = function (_p33) {
 		{
 			ctor: '::',
 			_0: function () {
-				var _p35 = _p34.ui.screen;
-				switch (_p35.ctor) {
+				var _p31 = _p30.ui.screen;
+				switch (_p31.ctor) {
 					case 'StartScreen':
-						return _user$project$Main$renderStartScreen(_p36);
+						return _user$project$Main$renderStartScreen(_p32);
 					case 'PlayScreen':
-						return _user$project$Main$renderPlayScreen(_p36);
+						return _user$project$Main$renderPlayScreen(_p32);
 					default:
 						return A2(
 							_elm_lang$html$Html$div,
@@ -10932,8 +11077,8 @@ var _user$project$Main$Tick = function (a) {
 var _user$project$Main$ResizeWindow = function (a) {
 	return {ctor: 'ResizeWindow', _0: a};
 };
-var _user$project$Main$subscriptions = function (_p37) {
-	var _p38 = _p37;
+var _user$project$Main$subscriptions = function (_p33) {
+	var _p34 = _p33;
 	var seconds = A2(_elm_lang$core$Time$every, _elm_lang$core$Time$second, _user$project$Main$TimeSecond);
 	var animation = {
 		ctor: '::',
@@ -10952,25 +11097,28 @@ var _user$project$Main$subscriptions = function (_p37) {
 		}
 	};
 	var window = _elm_lang$window$Window$resizes(
-		function (_p39) {
-			var _p40 = _p39;
+		function (_p35) {
+			var _p36 = _p35;
 			return _user$project$Main$ResizeWindow(
-				{ctor: '_Tuple2', _0: _p40.width, _1: _p40.height});
+				{ctor: '_Tuple2', _0: _p36.width, _1: _p36.height});
 		});
 	return _elm_lang$core$Platform_Sub$batch(
 		function () {
-			var _p41 = _p38.ui.screen;
-			switch (_p41.ctor) {
+			var _p37 = _p34.ui.screen;
+			switch (_p37.ctor) {
 				case 'StartScreen':
-					return {
-						ctor: '::',
-						_0: window,
-						_1: {
+					return A2(
+						_elm_lang$core$Basics_ops['++'],
+						{
 							ctor: '::',
-							_0: seconds,
-							_1: {ctor: '[]'}
-						}
-					};
+							_0: window,
+							_1: {
+								ctor: '::',
+								_0: seconds,
+								_1: {ctor: '[]'}
+							}
+						},
+						keys);
 				case 'PlayScreen':
 					return A2(
 						_elm_lang$core$Basics_ops['++'],
@@ -10994,18 +11142,19 @@ var _user$project$Main$subscriptions = function (_p37) {
 };
 var _user$project$Main$initialWindowSizeCommand = A2(
 	_elm_lang$core$Task$perform,
-	function (_p42) {
-		var _p43 = _p42;
+	function (_p38) {
+		var _p39 = _p38;
 		return _user$project$Main$ResizeWindow(
-			{ctor: '_Tuple2', _0: _p43.width, _1: _p43.height});
+			{ctor: '_Tuple2', _0: _p39.width, _1: _p39.height});
 	},
 	_elm_lang$window$Window$size);
 var _user$project$Main$GameoverScreen = {ctor: 'GameoverScreen'};
 var _user$project$Main$PlayScreen = {ctor: 'PlayScreen'};
+var _user$project$Main$StartScreen = {ctor: 'StartScreen'};
 var _user$project$Main$initialUi = {
 	windowSize: {ctor: '_Tuple2', _0: 500, _1: 500},
 	pressedKeys: _elm_lang$core$Set$empty,
-	screen: _user$project$Main$PlayScreen
+	screen: _user$project$Main$StartScreen
 };
 var _user$project$Main$initialModel = {
 	player1: A8(
@@ -11049,33 +11198,63 @@ var _user$project$Main$initialModel = {
 		A2(_user$project$Main$Vector, 0, 0),
 		15)
 };
-var _user$project$Main$freshGame = function (_p44) {
-	var _p45 = _p44;
+var _user$project$Main$freshGame = function (_p40) {
+	var _p41 = _p40;
 	var ui_ = _elm_lang$core$Native_Utils.update(
-		_p45.ui,
+		_p41.ui,
 		{screen: _user$project$Main$PlayScreen, pressedKeys: _elm_lang$core$Set$empty});
 	return _elm_lang$core$Native_Utils.update(
 		_user$project$Main$initialModel,
-		{ui: ui_, game: _p45.game});
+		{ui: ui_, game: _p41.game});
 };
+var _user$project$Main$handleKeyChange = F3(
+	function (pressed, keycode, _p42) {
+		var _p43 = _p42;
+		var _p46 = _p43.ui;
+		var _p45 = _p43;
+		var fn = pressed ? _elm_lang$core$Set$insert : _elm_lang$core$Set$remove;
+		var pressedKeys_ = A2(fn, keycode, _p46.pressedKeys);
+		var ui_ = _elm_lang$core$Native_Utils.update(
+			_p46,
+			{pressedKeys: pressedKeys_});
+		var _p44 = _p46.screen;
+		switch (_p44.ctor) {
+			case 'StartScreen':
+				var spacebar = 32;
+				var screen_ = A2(_user$project$Main$keyPressed, spacebar, pressedKeys_) ? _user$project$Main$PlayScreen : _user$project$Main$StartScreen;
+				return _elm_lang$core$Native_Utils.update(
+					_p45,
+					{
+						ui: _elm_lang$core$Native_Utils.update(
+							ui_,
+							{screen: screen_})
+					});
+			case 'PlayScreen':
+				return _elm_lang$core$Native_Utils.update(
+					_p45,
+					{ui: ui_});
+			default:
+				return _p45;
+		}
+	});
 var _user$project$Main$update = F2(
-	function (action, _p46) {
-		var _p47 = _p46;
-		var _p56 = _p47.wall;
-		var _p55 = _p47.ui;
-		var _p54 = _p47.player2;
-		var _p53 = _p47.player1;
-		var _p52 = _p47;
-		var _p51 = _p47.game;
-		var _p50 = _p47.ball;
-		var _p48 = action;
-		switch (_p48.ctor) {
+	function (action, _p47) {
+		var _p48 = _p47;
+		var _p57 = _p48.wall;
+		var _p56 = _p48.ui;
+		var _p55 = _p48.player2;
+		var _p54 = _p48.player1;
+		var _p53 = _p48;
+		var _p52 = _p48.game;
+		var _p51 = _p48.ball;
+		var _p49 = action;
+		switch (_p49.ctor) {
 			case 'ResizeWindow':
-				var _p49 = _p48._0;
+				var _p50 = _p49._0;
 				var width = A2(
 					_elm_lang$core$Basics$min,
 					_user$project$Main$containerWidth,
-					_elm_lang$core$Tuple$first(_p49));
+					_elm_lang$core$Tuple$first(_p50));
 				var height = _elm_lang$core$Basics$round(
 					function (n) {
 						return n / 21;
@@ -11091,11 +11270,11 @@ var _user$project$Main$update = F2(
 				return {
 					ctor: '_Tuple2',
 					_0: _elm_lang$core$Native_Utils.update(
-						_p52,
+						_p53,
 						{
 							ui: _elm_lang$core$Native_Utils.update(
-								_p55,
-								{windowSize: _p49}),
+								_p56,
+								{windowSize: _p50}),
 							game: game
 						}),
 					_1: _elm_lang$core$Platform_Cmd$none
@@ -11103,24 +11282,24 @@ var _user$project$Main$update = F2(
 			case 'KeyChange':
 				return {
 					ctor: '_Tuple2',
-					_0: A3(_user$project$Main$handleKeyChange, _p48._0, _p48._1, _p52),
+					_0: A3(_user$project$Main$handleKeyChange, _p49._0, _p49._1, _p53),
 					_1: _elm_lang$core$Platform_Cmd$none
 				};
 			case 'Tick':
 				var ball_ = A2(
 					_user$project$Main$applyGameBoundariesToBall,
-					_p51,
+					_p52,
 					A3(
 						_user$project$Main$applyCollisionsToBall,
-						_p53,
 						_p54,
-						_user$project$Main$applyVelocityToBall(_p50)));
-				var wallPos = ((_p51.x / 2) | 0) - ((_p56.width / 2) | 0);
+						_p55,
+						_user$project$Main$applyVelocityToBall(_p51)));
+				var wallPos = ((_p52.x / 2) | 0) - ((_p57.width / 2) | 0);
 				var getActiveControlsForPlayer = function (player) {
-					return player.ai.active ? A2(_user$project$Main$getAiActiveControls, _p50, player) : {
-						left: A2(_user$project$Main$keyPressed, player.leftKey, _p55.pressedKeys),
-						right: A2(_user$project$Main$keyPressed, player.rightKey, _p55.pressedKeys),
-						jump: A2(_user$project$Main$keyPressed, player.jumpKey, _p55.pressedKeys)
+					return player.ai.active ? A2(_user$project$Main$getAiActiveControls, _p51, player) : {
+						left: A2(_user$project$Main$keyPressed, player.leftKey, _p56.pressedKeys),
+						right: A2(_user$project$Main$keyPressed, player.rightKey, _p56.pressedKeys),
+						jump: A2(_user$project$Main$keyPressed, player.jumpKey, _p56.pressedKeys)
 					};
 				};
 				var maybeJump = function (player) {
@@ -11130,7 +11309,7 @@ var _user$project$Main$update = F2(
 					return function (p) {
 						return A3(
 							_user$project$Main$applyControlsToPlayerPosition,
-							_p51,
+							_p52,
 							getActiveControlsForPlayer(p),
 							p);
 					}(
@@ -11149,13 +11328,13 @@ var _user$project$Main$update = F2(
 						return p;
 					}
 				}(
-					updatePlayer(_p53));
+					updatePlayer(_p54));
 				var player2_ = function (p) {
-					if (_elm_lang$core$Native_Utils.cmp(p.position.x - _user$project$Main$playerRadius, wallPos + _p56.width) < 0) {
+					if (_elm_lang$core$Native_Utils.cmp(p.position.x - _user$project$Main$playerRadius, wallPos + _p57.width) < 0) {
 						var position = p.position;
 						var position_ = _elm_lang$core$Native_Utils.update(
 							position,
-							{x: (wallPos + _p56.width) + _user$project$Main$playerRadius});
+							{x: (wallPos + _p57.width) + _user$project$Main$playerRadius});
 						return _elm_lang$core$Native_Utils.update(
 							p,
 							{position: position_});
@@ -11163,19 +11342,19 @@ var _user$project$Main$update = F2(
 						return p;
 					}
 				}(
-					updatePlayer(_p54));
-				var model_ = (_elm_lang$core$Native_Utils.cmp(_p50.radius, _p50.position.y) > 0) ? _user$project$Main$freshGame(_p52) : _elm_lang$core$Native_Utils.update(
-					_p52,
+					updatePlayer(_p55));
+				var model_ = (_elm_lang$core$Native_Utils.cmp(_p51.radius, _p51.position.y) > 0) ? _user$project$Main$freshGame(_p53) : _elm_lang$core$Native_Utils.update(
+					_p53,
 					{player1: player1_, player2: player2_, ball: ball_});
 				return {ctor: '_Tuple2', _0: model_, _1: _elm_lang$core$Platform_Cmd$none};
 			case 'StartGame':
 				return {
 					ctor: '_Tuple2',
-					_0: _user$project$Main$freshGame(_p52),
+					_0: _user$project$Main$freshGame(_p53),
 					_1: _elm_lang$core$Platform_Cmd$none
 				};
 			default:
-				return {ctor: '_Tuple2', _0: _p52, _1: _elm_lang$core$Platform_Cmd$none};
+				return {ctor: '_Tuple2', _0: _p53, _1: _elm_lang$core$Platform_Cmd$none};
 		}
 	});
 var _user$project$Main$main = _elm_lang$html$Html$program(
@@ -11185,7 +11364,6 @@ var _user$project$Main$main = _elm_lang$html$Html$program(
 		view: _user$project$Main$view,
 		subscriptions: _user$project$Main$subscriptions
 	})();
-var _user$project$Main$StartScreen = {ctor: 'StartScreen'};
 
 var Elm = {};
 Elm['Main'] = Elm['Main'] || {};
