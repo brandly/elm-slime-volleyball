@@ -93,6 +93,7 @@ type alias Player =
     , controls : Controls
     , color : Color
     , velocity : Vector
+    , score : Int
     , ai : Ai
     }
 
@@ -150,8 +151,8 @@ initialUi =
 
 initialModel : Model
 initialModel =
-    { player1 = Player "cool" (Coords (containerWidth // 2 - 100) 0) wasdControls Color.blue { x = 0, y = 0 } (Ai True (>))
-    , player2 = Player "lame" (Coords (containerWidth // 2 + 100) 0) arrowControls Color.red { x = 0, y = 0 } (Ai False (<))
+    { player1 = Player "cool" (Coords (containerWidth // 2 - 100) 0) wasdControls Color.blue { x = 0, y = 0 } 0 (Ai True (>))
+    , player2 = Player "lame" (Coords (containerWidth // 2 + 100) 0) arrowControls Color.red { x = 0, y = 0 } 0 (Ai False (<))
     , ui = initialUi
     , game = { x = 500, y = 500 }
     , wall = { height = 50, width = 10 }
@@ -160,15 +161,32 @@ initialModel =
 
 
 freshGame : Model -> Model
-freshGame { ui, game } =
+freshGame { ui, game, player1, player2 } =
     let
         ui_ =
             { ui
                 | screen = PlayScreen
                 , pressedKeys = Set.empty
             }
+
+        player1_ =
+            { player1 | score = 0 }
+
+        player2_ =
+            { player2 | score = 0 }
     in
-    { initialModel | ui = ui_, game = game }
+    { initialModel | ui = ui_, game = game, player1 = player1_, player2 = player2_ }
+
+
+freshDrop : Model -> Model
+freshDrop { ui, game, player1, player2 } =
+    let
+        ui_ =
+            { ui
+                | screen = PlayScreen
+            }
+    in
+    { initialModel | ui = ui_, game = game, player1 = player1, player2 = player2 }
 
 
 type Msg
@@ -231,10 +249,28 @@ update action ({ ui, player1, player2, game, wall, ball } as model) =
                 wallPos =
                     game.x // 2 - wall.width // 2
 
+                incrementScore : (Int -> Int -> Bool) -> Player -> Player
+                incrementScore operator player =
+                    let
+                        midCourt =
+                            game.x // 2
+
+                        increment =
+                            hitGround && operator ball.position.x midCourt
+
+                        score_ =
+                            if increment then
+                                player.score + 1
+                            else
+                                player.score
+                    in
+                    { player | score = score_ }
+
                 -- TODO: seems like we could generalize collision logic here
                 player1_ =
                     player1
                         |> updatePlayer
+                        |> incrementScore (>)
                         |> (\p ->
                                 if p.position.x + playerRadius > wallPos then
                                     let
@@ -252,6 +288,7 @@ update action ({ ui, player1, player2, game, wall, ball } as model) =
                 player2_ =
                     player2
                         |> updatePlayer
+                        |> incrementScore (<)
                         |> (\p ->
                                 if p.position.x - playerRadius < wallPos + wall.width then
                                     let
@@ -272,13 +309,19 @@ update action ({ ui, player1, player2, game, wall, ball } as model) =
                         |> applyCollisionsToBall player1 player2
                         |> applyGameBoundariesToBall game
 
+                hitGround =
+                    ball.radius > ball.position.y
+
                 model_ =
-                    if ball.radius > ball.position.y then
-                        freshGame model
+                    { model | player1 = player1_, player2 = player2_, ball = ball_ }
+
+                model__ =
+                    if hitGround then
+                        freshDrop model_
                     else
-                        { model | player1 = player1_, player2 = player2_, ball = ball_ }
+                        model_
             in
-            ( model_, Cmd.none )
+            ( model__, Cmd.none )
 
         StartGame ->
             ( freshGame model, Cmd.none )
@@ -613,9 +656,7 @@ view ({ ui, game } as model) =
             , ( "position", "relative" )
             , ( "width", "100%" )
             , ( "max-width", toString containerWidth ++ "px" )
-            , ( "height", toString game.y ++ "px" )
             , ( "margin", "0 auto" )
-            , ( "border", "1px solid #EEE" )
             , ( "font-family", "sans-serif" )
             ]
         ]
@@ -664,14 +705,52 @@ renderHeader =
 
 
 renderPlayScreen : Model -> Html Msg
-renderPlayScreen { game, player1, player2, wall, ball } =
+renderPlayScreen ({ player1, player2 } as model) =
     div
         []
         [ renderHeader
-        , renderWall wall game
+        , renderGame model
+        , renderScore player1 player2
+        ]
+
+
+renderGame : Model -> Html Msg
+renderGame { game, player1, player2, wall, ball } =
+    div
+        [ style
+            [ ( "position", "relative" )
+            , ( "border", "1px solid #EEE" )
+            , ( "height", toString game.y ++ "px" )
+            , ( "width", "100%" )
+            ]
+        ]
+        [ renderWall wall game
         , renderPlayer player1 ball game
         , renderPlayer player2 ball game
         , renderBall ball game
+        ]
+
+
+renderScore : Player -> Player -> Html Msg
+renderScore p1 p2 =
+    div
+        [ style
+            [ ( "width", "100%" ) ]
+        ]
+        [ div
+            [ style
+                [ ( "width", "50%" )
+                , ( "display", "inline-block" )
+                ]
+            ]
+            [ text (toString p1.score) ]
+        , div
+            [ style
+                [ ( "width", "50%" )
+                , ( "display", "inline-block" )
+                ]
+            ]
+            [ text (toString p2.score) ]
         ]
 
 
