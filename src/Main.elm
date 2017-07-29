@@ -115,7 +115,7 @@ type Msg
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
-update action ({ ui, player1, player2, game } as model) =
+update action ({ ui, player1, player2, game, wall } as model) =
     case action of
         ResizeWindow dimensions ->
             let
@@ -150,13 +150,46 @@ update action ({ ui, player1, player2, game } as model) =
                 updatePlayer player =
                     player
                         |> maybeJump
-                        |> applyKeysToPlayerPosition ui.pressedKeys game
+                        |> applyKeysToPlayerPosition ui.pressedKeys wall game
 
+                wallPos : Int
+                wallPos =
+                    game.x // 2 - wall.width // 2
+
+                -- TODO: seems like we could generalize collision logic here
                 player1_ =
-                    updatePlayer player1
+                    player1
+                        |> updatePlayer
+                        |> (\p ->
+                                if p.position.x + playerRadius > wallPos then
+                                    let
+                                        position =
+                                            p.position
+
+                                        position_ =
+                                            { position | x = wallPos - playerRadius }
+                                    in
+                                    { p | position = position_ }
+                                else
+                                    p
+                           )
 
                 player2_ =
-                    updatePlayer player2
+                    player2
+                        |> updatePlayer
+                        |> (\p ->
+                                if p.position.x - playerRadius < wallPos + wall.width then
+                                    let
+                                        position =
+                                            p.position
+
+                                        position_ =
+                                            { position | x = wallPos + wall.width + playerRadius }
+                                    in
+                                    { p | position = position_ }
+                                else
+                                    p
+                           )
             in
             ( { model | player1 = player1_, player2 = player2_ }, Cmd.none )
 
@@ -168,8 +201,8 @@ update action ({ ui, player1, player2, game } as model) =
             ( model, Cmd.none )
 
 
-applyKeysToPlayerPosition : PressedKeys -> Game -> Player -> Player
-applyKeysToPlayerPosition pressedKeys game player =
+applyKeysToPlayerPosition : PressedKeys -> Wall -> Game -> Player -> Player
+applyKeysToPlayerPosition pressedKeys wall game player =
     let
         player_ =
             applyVelocityToPlayer player
@@ -192,10 +225,10 @@ applyKeysToPlayerPosition pressedKeys game player =
                 0
 
         x =
-            if position.x + move < 0 then
-                0
-            else if position.x + move + playerSize.x > game.x then
-                game.x - playerSize.x
+            if position.x + move < playerRadius then
+                playerRadius
+            else if position.x + move > game.x - playerRadius then
+                game.x - playerRadius
             else
                 position.x + move
 
@@ -437,7 +470,7 @@ renderWall : Wall -> Game -> Html Msg
 renderWall wall game =
     let
         left =
-            game.x // 2 - wall.width - 2
+            game.x // 2 - wall.width // 2
     in
     div
         [ style
@@ -465,7 +498,7 @@ renderPlayer player game =
         [ style
             [ ( "position", "absolute" )
             , ( "top", "0" )
-            , ( "left", "0" )
+            , ( "left", toString -playerRadius ++ "px" )
             , ( "transform", "translate(" ++ toString x ++ "px, " ++ toString top ++ "px)" )
             , ( "background", Color.Convert.colorToHex player.color )
             , ( "width", toString playerSize.x ++ "px" )
