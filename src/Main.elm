@@ -648,8 +648,8 @@ renderPlayScreen { game, player1, player2, wall, ball } =
         []
         [ renderHeader
         , renderWall wall game
-        , renderPlayer player1 game
-        , renderPlayer player2 game
+        , renderPlayer player1 ball game
+        , renderPlayer player2 ball game
         , renderBall ball game
         ]
 
@@ -673,21 +673,45 @@ renderWall wall game =
         []
 
 
-renderPlayer : Player -> Game -> Html Msg
-renderPlayer player game =
+renderPlayer : Player -> Ball -> Game -> Html Msg
+renderPlayer player ball game =
     let
         { x, y } =
             player.position
 
-        top =
+        playerTop =
             gameY game playerRadius player.position
+
+        unitNormal =
+            getUnitNormal (toVector player.position) (toVector ball.position)
+
+        scalar =
+            0.8
+
+        scaledPlayerRadius =
+            scalar * toFloat playerRadius
+
+        scaledEyeVector =
+            times unitNormal scaledPlayerRadius
+
+        eyeRadius =
+            8
+
+        eyeX =
+            scaledEyeVector.x + toFloat playerRadius - toFloat eyeRadius
+
+        eyeY =
+            toFloat playerRadius - scaledEyeVector.y
+
+        pupilRadius =
+            eyeRadius // 2
     in
     div
         [ style
             [ ( "position", "absolute" )
             , ( "top", "0" )
             , ( "left", toString -playerRadius ++ "px" )
-            , ( "transform", "translate(" ++ toString x ++ "px, " ++ toString top ++ "px)" )
+            , ( "transform", "translate(" ++ toString x ++ "px, " ++ toString playerTop ++ "px)" )
             , ( "background", Color.Convert.colorToHex player.color )
             , ( "width", toString playerSize.x ++ "px" )
             , ( "height", toString playerSize.y ++ "px" )
@@ -695,7 +719,31 @@ renderPlayer player game =
             , ( "border-top-right-radius", toString (playerSize.x * 2) ++ "px" )
             ]
         ]
-        []
+        [ div
+            [ style
+                [ ( "position", "absolute" )
+                , ( "left", toString eyeX ++ "px" )
+                , ( "top", toString eyeY ++ "px" )
+                , ( "width", toString (eyeRadius * 2) ++ "px" )
+                , ( "height", toString (eyeRadius * 2) ++ "px" )
+                , ( "background", "white" )
+                , ( "border-radius", toString eyeRadius ++ "px" )
+                ]
+            ]
+            [ div
+                [ style
+                    [ ( "background", "black" )
+                    , ( "width", toString (pupilRadius * 2) ++ "px" )
+                    , ( "height", toString (pupilRadius * 2) ++ "px" )
+                    , ( "border-radius", toString pupilRadius ++ "px" )
+                    , ( "position", "absolute" )
+                    , ( "left", toString (toFloat eyeRadius - toFloat pupilRadius) ++ "px" )
+                    , ( "bottom", toString (toFloat eyeRadius - toFloat pupilRadius) ++ "px" )
+                    ]
+                ]
+                []
+            ]
+        ]
 
 
 renderBall : Ball -> Game -> Html Msg
