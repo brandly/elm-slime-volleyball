@@ -10383,6 +10383,120 @@ var _user$project$Main$renderWall = F2(
 			},
 			{ctor: '[]'});
 	});
+var _user$project$Main$pointsToWin = 10;
+var _user$project$Main$renderScoreDots = function (score) {
+	var background = function (index) {
+		return (_elm_lang$core$Native_Utils.cmp(index, score) < 1) ? 'black' : 'white';
+	};
+	var size = 20;
+	var makeDot = function (index) {
+		return A2(
+			_elm_lang$html$Html$div,
+			{
+				ctor: '::',
+				_0: _elm_lang$html$Html_Attributes$style(
+					{
+						ctor: '::',
+						_0: {ctor: '_Tuple2', _0: 'display', _1: 'inline-block'},
+						_1: {
+							ctor: '::',
+							_0: {
+								ctor: '_Tuple2',
+								_0: 'width',
+								_1: A2(
+									_elm_lang$core$Basics_ops['++'],
+									_elm_lang$core$Basics$toString(size),
+									'px')
+							},
+							_1: {
+								ctor: '::',
+								_0: {
+									ctor: '_Tuple2',
+									_0: 'height',
+									_1: A2(
+										_elm_lang$core$Basics_ops['++'],
+										_elm_lang$core$Basics$toString(size),
+										'px')
+								},
+								_1: {
+									ctor: '::',
+									_0: {ctor: '_Tuple2', _0: 'border', _1: '1px solid black'},
+									_1: {
+										ctor: '::',
+										_0: {
+											ctor: '_Tuple2',
+											_0: 'border-radius',
+											_1: A2(
+												_elm_lang$core$Basics_ops['++'],
+												_elm_lang$core$Basics$toString(size),
+												'px')
+										},
+										_1: {
+											ctor: '::',
+											_0: {
+												ctor: '_Tuple2',
+												_0: 'background',
+												_1: background(index)
+											},
+											_1: {ctor: '[]'}
+										}
+									}
+								}
+							}
+						}
+					}),
+				_1: {ctor: '[]'}
+			},
+			{ctor: '[]'});
+	};
+	var dots = A2(
+		_elm_lang$core$List$map,
+		makeDot,
+		A2(_elm_lang$core$List$range, 1, _user$project$Main$pointsToWin));
+	return A2(
+		_elm_lang$html$Html$div,
+		{
+			ctor: '::',
+			_0: _elm_lang$html$Html_Attributes$style(
+				{
+					ctor: '::',
+					_0: {ctor: '_Tuple2', _0: 'display', _1: 'flex'},
+					_1: {
+						ctor: '::',
+						_0: {ctor: '_Tuple2', _0: 'flex-direction', _1: 'row'},
+						_1: {
+							ctor: '::',
+							_0: {ctor: '_Tuple2', _0: 'justify-content', _1: 'space-between'},
+							_1: {
+								ctor: '::',
+								_0: {
+									ctor: '_Tuple2',
+									_0: 'padding',
+									_1: A2(
+										_elm_lang$core$Basics_ops['++'],
+										_elm_lang$core$Basics$toString((size / 2) | 0),
+										'px')
+								},
+								_1: {
+									ctor: '::',
+									_0: {
+										ctor: '_Tuple2',
+										_0: 'margin',
+										_1: A2(
+											_elm_lang$core$Basics_ops['++'],
+											_elm_lang$core$Basics$toString(size),
+											'px 0')
+									},
+									_1: {ctor: '[]'}
+								}
+							}
+						}
+					}
+				}),
+			_1: {ctor: '[]'}
+		},
+		dots);
+};
 var _user$project$Main$renderScore = F2(
 	function (p1, p2) {
 		return A2(
@@ -10417,8 +10531,7 @@ var _user$project$Main$renderScore = F2(
 					},
 					{
 						ctor: '::',
-						_0: _elm_lang$html$Html$text(
-							_elm_lang$core$Basics$toString(p1.score)),
+						_0: _user$project$Main$renderScoreDots(p1.score),
 						_1: {ctor: '[]'}
 					}),
 				_1: {
@@ -10441,8 +10554,7 @@ var _user$project$Main$renderScore = F2(
 						},
 						{
 							ctor: '::',
-							_0: _elm_lang$html$Html$text(
-								_elm_lang$core$Basics$toString(p2.score)),
+							_0: _user$project$Main$renderScoreDots(p2.score),
 							_1: {ctor: '[]'}
 						}),
 					_1: {ctor: '[]'}
@@ -10457,7 +10569,11 @@ var _user$project$Main$renderHeader = A2(
 			{
 				ctor: '::',
 				_0: {ctor: '_Tuple2', _0: 'text-align', _1: 'center'},
-				_1: {ctor: '[]'}
+				_1: {
+					ctor: '::',
+					_0: {ctor: '_Tuple2', _0: 'margin', _1: '48px 0 36px'},
+					_1: {ctor: '[]'}
+				}
 			}),
 		_1: {ctor: '[]'}
 	},
