@@ -515,7 +515,7 @@ initialWindowSizeCommand =
 
 playerRadius : Int
 playerRadius =
-    25
+    40
 
 
 playerSize : Coords
