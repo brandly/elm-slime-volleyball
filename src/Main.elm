@@ -241,22 +241,10 @@ handleKeyChange pressed keycode ({ ui, player1, player2 } as model) =
     case ui.screen of
         PlayScreen ->
             let
-                maybeJump player =
-                    if keyPressed player.jumpKey pressedKeys_ && player.position.y == 0 then
-                        jump player
-                    else
-                        player
-
-                player1_ =
-                    maybeJump player1
-
-                player2_ =
-                    maybeJump player2
-
                 ui_ =
                     { ui | pressedKeys = pressedKeys_ }
             in
-            { model | ui = ui_, player1 = player1_, player2 = player2_ }
+            { model | ui = ui_ }
 
         _ ->
             model
