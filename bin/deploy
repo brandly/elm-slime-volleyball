@@ -9,6 +9,7 @@ function main {
     build
     # minfy
     copy
+    commit_and_push_to_gh
 }
 
 function build {
