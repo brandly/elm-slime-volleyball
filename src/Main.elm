@@ -141,11 +141,22 @@ update action ({ ui, player1, player2, game } as model) =
 
         Tick delta ->
             let
+                maybeJump player =
+                    if keyPressed player.jumpKey ui.pressedKeys && player.position.y == 0 then
+                        jump player
+                    else
+                        player
+
+                updatePlayer player =
+                    player
+                        |> maybeJump
+                        |> (\n -> applyKeysToPlayerPosition ui.pressedKeys n game)
+
                 player1_ =
-                    applyKeysToPlayerPosition ui.pressedKeys player1 game
+                    updatePlayer player1
 
                 player2_ =
-                    applyKeysToPlayerPosition ui.pressedKeys player2 game
+                    updatePlayer player2
             in
             ( { model | player1 = player1_, player2 = player2_ }, Cmd.none )
 
@@ -230,11 +241,8 @@ handleKeyChange pressed keycode ({ ui, player1, player2 } as model) =
     case ui.screen of
         PlayScreen ->
             let
-                justPressed keycode =
-                    freshKeyPress keycode ui.pressedKeys pressedKeys_
-
                 maybeJump player =
-                    if justPressed player.jumpKey then
+                    if keyPressed player.jumpKey pressedKeys_ && player.position.y == 0 then
                         jump player
                     else
                         player
@@ -272,15 +280,6 @@ jump ({ position, velocity } as player) =
             { velocity | y = vy }
     in
     { player | velocity = velocity_ }
-
-
-freshKeyPress : KeyCode -> Set KeyCode -> Set KeyCode -> Bool
-freshKeyPress keycode previouslyPressedKeys currentlyPressedKeys =
-    let
-        pressed =
-            keyPressed keycode
-    in
-    pressed currentlyPressedKeys && not (pressed previouslyPressedKeys)
 
 
 keyPressed : KeyCode -> PressedKeys -> Bool
