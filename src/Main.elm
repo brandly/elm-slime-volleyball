@@ -278,9 +278,9 @@ update action ({ ui, player1, player2, game, wall, ball } as model) =
                     let
                         onOpponentsSide =
                             if player.team == Left then
-                                ball.position.x < midCourt
-                            else
                                 ball.position.x > midCourt
+                            else
+                                ball.position.x < midCourt
 
                         midCourt =
                             game.x // 2
