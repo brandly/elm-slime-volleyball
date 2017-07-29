@@ -10592,6 +10592,26 @@ var _user$project$Main$applyVelocityToPlayer = function (_p13) {
 		_p15,
 		{velocity: velocity_, position: position_});
 };
+var _user$project$Main$applyGameBoundariesToBall = F2(
+	function (game, _p17) {
+		var _p18 = _p17;
+		var _p21 = _p18.velocity;
+		var _p20 = _p18.radius;
+		var _p19 = _p18.position;
+		var hitBoundaries = (_elm_lang$core$Native_Utils.cmp(_p19.x, _p20) < 0) ? true : ((_elm_lang$core$Native_Utils.cmp(_p19.x, game.x - _p20) > 0) ? true : false);
+		var x_ = hitBoundaries ? (_p21.x * -1) : _p21.x;
+		return _elm_lang$core$Native_Utils.update(
+			_p18,
+			{
+				velocity: _elm_lang$core$Native_Utils.update(
+					_p21,
+					{x: x_})
+			});
+	});
+var _user$project$Main$applyGameBoundaries = F2(
+	function (game, position) {
+		return (_elm_lang$core$Native_Utils.cmp(position.x, _user$project$Main$playerRadius) < 0) ? _user$project$Main$playerRadius : ((_elm_lang$core$Native_Utils.cmp(position.x, game.x - _user$project$Main$playerRadius) > 0) ? (game.x - _user$project$Main$playerRadius) : position.x);
+	});
 var _user$project$Main$applyKeysToPlayerPosition = F4(
 	function (pressedKeys, wall, game, player) {
 		var rightPressed = A2(_user$project$Main$keyPressed, player.rightKey, pressedKeys);
@@ -10599,7 +10619,12 @@ var _user$project$Main$applyKeysToPlayerPosition = F4(
 		var move = leftPressed ? -5 : (rightPressed ? 5 : 0);
 		var player_ = _user$project$Main$applyVelocityToPlayer(player);
 		var position = player_.position;
-		var x = (_elm_lang$core$Native_Utils.cmp(position.x + move, _user$project$Main$playerRadius) < 0) ? _user$project$Main$playerRadius : ((_elm_lang$core$Native_Utils.cmp(position.x + move, game.x - _user$project$Main$playerRadius) > 0) ? (game.x - _user$project$Main$playerRadius) : (position.x + move));
+		var x = A2(
+			_user$project$Main$applyGameBoundaries,
+			game,
+			_elm_lang$core$Native_Utils.update(
+				position,
+				{x: position.x + move}));
 		var position_ = _elm_lang$core$Native_Utils.update(
 			position,
 			{x: x});
@@ -10607,21 +10632,21 @@ var _user$project$Main$applyKeysToPlayerPosition = F4(
 			player_,
 			{position: position_});
 	});
-var _user$project$Main$applyVelocityToBall = function (_p17) {
-	var _p18 = _p17;
-	var _p20 = _p18.velocity;
-	var _p19 = _p18.position;
+var _user$project$Main$applyVelocityToBall = function (_p22) {
+	var _p23 = _p22;
+	var _p25 = _p23.velocity;
+	var _p24 = _p23.position;
 	var velocity_ = _elm_lang$core$Native_Utils.update(
-		_p20,
-		{y: _p20.y - 0.3});
+		_p25,
+		{y: _p25.y - 0.3});
 	var position_ = _elm_lang$core$Native_Utils.update(
-		_p19,
+		_p24,
 		{
-			x: _p19.x + _elm_lang$core$Basics$round(_p20.x),
-			y: _p19.y + _elm_lang$core$Basics$round(_p20.y)
+			x: _p24.x + _elm_lang$core$Basics$round(_p25.x),
+			y: _p24.y + _elm_lang$core$Basics$round(_p25.y)
 		});
 	return _elm_lang$core$Native_Utils.update(
-		_p18,
+		_p23,
 		{position: position_, velocity: velocity_});
 };
 var _user$project$Main$toVector = function (coords) {
@@ -10665,32 +10690,32 @@ var _user$project$Main$getUnitNormal = F2(
 			_user$project$Main$magnitude(normalVector));
 	});
 var _user$project$Main$collideWithPlayer = F2(
-	function (player, _p21) {
-		var _p22 = _p21;
-		var _p23 = _p22;
-		var vBallPosition = _user$project$Main$toVector(_p23.position);
+	function (player, _p26) {
+		var _p27 = _p26;
+		var _p28 = _p27;
+		var vBallPosition = _user$project$Main$toVector(_p28.position);
 		var vPlayerPosition = _user$project$Main$toVector(player.position);
 		var gap = A2(_user$project$Main$distance, vPlayerPosition, vBallPosition);
 		var didCollide = _elm_lang$core$Native_Utils.cmp(
 			_elm_lang$core$Basics$round(gap),
-			_user$project$Main$playerRadius + _p23.radius) < 0;
+			_user$project$Main$playerRadius + _p28.radius) < 0;
 		var unitNormal = A2(_user$project$Main$getUnitNormal, vPlayerPosition, vBallPosition);
 		var scaledNormal = A2(
 			_user$project$Main$times,
 			unitNormal,
-			_user$project$Main$magnitude(_p23.velocity));
-		var velocity_ = didCollide ? scaledNormal : _p22.velocity;
+			_user$project$Main$magnitude(_p28.velocity));
+		var velocity_ = didCollide ? scaledNormal : _p27.velocity;
 		return _elm_lang$core$Native_Utils.update(
-			_p23,
+			_p28,
 			{velocity: velocity_});
 	});
 var _user$project$Main$applyCollisionsToBall = F3(
-	function (p1, p2, _p24) {
-		var _p25 = _p24;
+	function (p1, p2, _p29) {
+		var _p30 = _p29;
 		return A2(
 			_user$project$Main$collideWithPlayer,
 			p2,
-			A2(_user$project$Main$collideWithPlayer, p1, _p25));
+			A2(_user$project$Main$collideWithPlayer, p1, _p30));
 	});
 var _user$project$Main$Coords = F2(
 	function (a, b) {
@@ -10799,9 +10824,9 @@ var _user$project$Main$renderStartScreen = function (model) {
 			}
 		});
 };
-var _user$project$Main$view = function (_p26) {
-	var _p27 = _p26;
-	var _p29 = _p27;
+var _user$project$Main$view = function (_p31) {
+	var _p32 = _p31;
+	var _p34 = _p32;
 	return A2(
 		_elm_lang$html$Html$div,
 		{
@@ -10833,7 +10858,7 @@ var _user$project$Main$view = function (_p26) {
 										_0: 'height',
 										_1: A2(
 											_elm_lang$core$Basics_ops['++'],
-											_elm_lang$core$Basics$toString(_p27.game.y),
+											_elm_lang$core$Basics$toString(_p32.game.y),
 											'px')
 									},
 									_1: {
@@ -10859,12 +10884,12 @@ var _user$project$Main$view = function (_p26) {
 		{
 			ctor: '::',
 			_0: function () {
-				var _p28 = _p27.ui.screen;
-				switch (_p28.ctor) {
+				var _p33 = _p32.ui.screen;
+				switch (_p33.ctor) {
 					case 'StartScreen':
-						return _user$project$Main$renderStartScreen(_p29);
+						return _user$project$Main$renderStartScreen(_p34);
 					case 'PlayScreen':
-						return _user$project$Main$renderPlayScreen(_p29);
+						return _user$project$Main$renderPlayScreen(_p34);
 					default:
 						return A2(
 							_elm_lang$html$Html$div,
@@ -10892,8 +10917,8 @@ var _user$project$Main$Tick = function (a) {
 var _user$project$Main$ResizeWindow = function (a) {
 	return {ctor: 'ResizeWindow', _0: a};
 };
-var _user$project$Main$subscriptions = function (_p30) {
-	var _p31 = _p30;
+var _user$project$Main$subscriptions = function (_p35) {
+	var _p36 = _p35;
 	var seconds = A2(_elm_lang$core$Time$every, _elm_lang$core$Time$second, _user$project$Main$TimeSecond);
 	var animation = {
 		ctor: '::',
@@ -10912,15 +10937,15 @@ var _user$project$Main$subscriptions = function (_p30) {
 		}
 	};
 	var window = _elm_lang$window$Window$resizes(
-		function (_p32) {
-			var _p33 = _p32;
+		function (_p37) {
+			var _p38 = _p37;
 			return _user$project$Main$ResizeWindow(
-				{ctor: '_Tuple2', _0: _p33.width, _1: _p33.height});
+				{ctor: '_Tuple2', _0: _p38.width, _1: _p38.height});
 		});
 	return _elm_lang$core$Platform_Sub$batch(
 		function () {
-			var _p34 = _p31.ui.screen;
-			switch (_p34.ctor) {
+			var _p39 = _p36.ui.screen;
+			switch (_p39.ctor) {
 				case 'StartScreen':
 					return {
 						ctor: '::',
@@ -10954,10 +10979,10 @@ var _user$project$Main$subscriptions = function (_p30) {
 };
 var _user$project$Main$initialWindowSizeCommand = A2(
 	_elm_lang$core$Task$perform,
-	function (_p35) {
-		var _p36 = _p35;
+	function (_p40) {
+		var _p41 = _p40;
 		return _user$project$Main$ResizeWindow(
-			{ctor: '_Tuple2', _0: _p36.width, _1: _p36.height});
+			{ctor: '_Tuple2', _0: _p41.width, _1: _p41.height});
 	},
 	_elm_lang$window$Window$size);
 var _user$project$Main$GameoverScreen = {ctor: 'GameoverScreen'};
@@ -10995,33 +11020,33 @@ var _user$project$Main$initialModel = {
 		A2(_user$project$Main$Vector, 0, 0),
 		15)
 };
-var _user$project$Main$freshGame = function (_p37) {
-	var _p38 = _p37;
+var _user$project$Main$freshGame = function (_p42) {
+	var _p43 = _p42;
 	var ui_ = _elm_lang$core$Native_Utils.update(
-		_p38.ui,
+		_p43.ui,
 		{screen: _user$project$Main$PlayScreen, pressedKeys: _elm_lang$core$Set$empty});
 	return _elm_lang$core$Native_Utils.update(
 		_user$project$Main$initialModel,
-		{ui: ui_, game: _p38.game});
+		{ui: ui_, game: _p43.game});
 };
 var _user$project$Main$update = F2(
-	function (action, _p39) {
-		var _p40 = _p39;
-		var _p49 = _p40.wall;
-		var _p48 = _p40.ui;
-		var _p47 = _p40.player2;
-		var _p46 = _p40.player1;
-		var _p45 = _p40;
-		var _p44 = _p40.game;
-		var _p43 = _p40.ball;
-		var _p41 = action;
-		switch (_p41.ctor) {
+	function (action, _p44) {
+		var _p45 = _p44;
+		var _p54 = _p45.wall;
+		var _p53 = _p45.ui;
+		var _p52 = _p45.player2;
+		var _p51 = _p45.player1;
+		var _p50 = _p45;
+		var _p49 = _p45.game;
+		var _p48 = _p45.ball;
+		var _p46 = action;
+		switch (_p46.ctor) {
 			case 'ResizeWindow':
-				var _p42 = _p41._0;
+				var _p47 = _p46._0;
 				var width = A2(
 					_elm_lang$core$Basics$min,
 					_user$project$Main$containerWidth,
-					_elm_lang$core$Tuple$first(_p42));
+					_elm_lang$core$Tuple$first(_p47));
 				var height = _elm_lang$core$Basics$round(
 					function (n) {
 						return n / 21;
@@ -11037,11 +11062,11 @@ var _user$project$Main$update = F2(
 				return {
 					ctor: '_Tuple2',
 					_0: _elm_lang$core$Native_Utils.update(
-						_p45,
+						_p50,
 						{
 							ui: _elm_lang$core$Native_Utils.update(
-								_p48,
-								{windowSize: _p42}),
+								_p53,
+								{windowSize: _p47}),
 							game: game
 						}),
 					_1: _elm_lang$core$Platform_Cmd$none
@@ -11049,25 +11074,28 @@ var _user$project$Main$update = F2(
 			case 'KeyChange':
 				return {
 					ctor: '_Tuple2',
-					_0: A3(_user$project$Main$handleKeyChange, _p41._0, _p41._1, _p45),
+					_0: A3(_user$project$Main$handleKeyChange, _p46._0, _p46._1, _p50),
 					_1: _elm_lang$core$Platform_Cmd$none
 				};
 			case 'Tick':
-				var ball_ = A3(
-					_user$project$Main$applyCollisionsToBall,
-					_p46,
-					_p47,
-					_user$project$Main$applyVelocityToBall(_p43));
-				var wallPos = ((_p44.x / 2) | 0) - ((_p49.width / 2) | 0);
+				var ball_ = A2(
+					_user$project$Main$applyGameBoundariesToBall,
+					_p49,
+					A3(
+						_user$project$Main$applyCollisionsToBall,
+						_p51,
+						_p52,
+						_user$project$Main$applyVelocityToBall(_p48)));
+				var wallPos = ((_p49.x / 2) | 0) - ((_p54.width / 2) | 0);
 				var maybeJump = function (player) {
-					return (A2(_user$project$Main$keyPressed, player.jumpKey, _p48.pressedKeys) && _elm_lang$core$Native_Utils.eq(player.position.y, 0)) ? _user$project$Main$jump(player) : player;
+					return (A2(_user$project$Main$keyPressed, player.jumpKey, _p53.pressedKeys) && _elm_lang$core$Native_Utils.eq(player.position.y, 0)) ? _user$project$Main$jump(player) : player;
 				};
 				var updatePlayer = function (player) {
 					return A4(
 						_user$project$Main$applyKeysToPlayerPosition,
-						_p48.pressedKeys,
+						_p53.pressedKeys,
+						_p54,
 						_p49,
-						_p44,
 						maybeJump(player));
 				};
 				var player1_ = function (p) {
@@ -11083,13 +11111,13 @@ var _user$project$Main$update = F2(
 						return p;
 					}
 				}(
-					updatePlayer(_p46));
+					updatePlayer(_p51));
 				var player2_ = function (p) {
-					if (_elm_lang$core$Native_Utils.cmp(p.position.x - _user$project$Main$playerRadius, wallPos + _p49.width) < 0) {
+					if (_elm_lang$core$Native_Utils.cmp(p.position.x - _user$project$Main$playerRadius, wallPos + _p54.width) < 0) {
 						var position = p.position;
 						var position_ = _elm_lang$core$Native_Utils.update(
 							position,
-							{x: (wallPos + _p49.width) + _user$project$Main$playerRadius});
+							{x: (wallPos + _p54.width) + _user$project$Main$playerRadius});
 						return _elm_lang$core$Native_Utils.update(
 							p,
 							{position: position_});
@@ -11097,19 +11125,19 @@ var _user$project$Main$update = F2(
 						return p;
 					}
 				}(
-					updatePlayer(_p47));
-				var model_ = (_elm_lang$core$Native_Utils.cmp(_p43.radius, _p43.position.y) > 0) ? _user$project$Main$freshGame(_p45) : _elm_lang$core$Native_Utils.update(
-					_p45,
+					updatePlayer(_p52));
+				var model_ = (_elm_lang$core$Native_Utils.cmp(_p48.radius, _p48.position.y) > 0) ? _user$project$Main$freshGame(_p50) : _elm_lang$core$Native_Utils.update(
+					_p50,
 					{player1: player1_, player2: player2_, ball: ball_});
 				return {ctor: '_Tuple2', _0: model_, _1: _elm_lang$core$Platform_Cmd$none};
 			case 'StartGame':
 				return {
 					ctor: '_Tuple2',
-					_0: _user$project$Main$freshGame(_p45),
+					_0: _user$project$Main$freshGame(_p50),
 					_1: _elm_lang$core$Platform_Cmd$none
 				};
 			default:
-				return {ctor: '_Tuple2', _0: _p45, _1: _elm_lang$core$Platform_Cmd$none};
+				return {ctor: '_Tuple2', _0: _p50, _1: _elm_lang$core$Platform_Cmd$none};
 		}
 	});
 var _user$project$Main$main = _elm_lang$html$Html$program(
