@@ -87,6 +87,11 @@ type alias Controls =
     }
 
 
+type Team
+    = Left
+    | Right
+
+
 type alias Player =
     { name : String
     , position : Coords
@@ -95,6 +100,7 @@ type alias Player =
     , velocity : Vector
     , score : Int
     , ai : Ai
+    , team : Team
     }
 
 
@@ -151,8 +157,26 @@ initialUi =
 
 initialModel : Model
 initialModel =
-    { player1 = Player "cool" (Coords (containerWidth // 2 - 100) 0) wasdControls Color.blue { x = 0, y = 0 } 0 (Ai True (>))
-    , player2 = Player "lame" (Coords (containerWidth // 2 + 100) 0) arrowControls Color.red { x = 0, y = 0 } 0 (Ai False (<))
+    { player1 =
+        Player
+            "cool"
+            (Coords (containerWidth // 2 - 100) 0)
+            wasdControls
+            Color.blue
+            { x = 0, y = 0 }
+            0
+            (Ai True (>))
+            Left
+    , player2 =
+        Player
+            "lame"
+            (Coords (containerWidth // 2 + 100) 0)
+            arrowControls
+            Color.red
+            { x = 0, y = 0 }
+            0
+            (Ai False (<))
+            Right
     , ui = initialUi
     , game = { x = 500, y = 500 }
     , wall = { height = 50, width = 10 }
@@ -441,10 +465,16 @@ type alias ActiveControls =
 
 
 getAiActiveControls : Ball -> Player -> ActiveControls
-getAiActiveControls ball ({ ai } as player) =
+getAiActiveControls ball ({ ai, team } as player) =
     let
+        operator =
+            if team == Left then
+                (>)
+            else
+                (<)
+
         moveRight =
-            ai.direction (ball.position.x - player.position.x) 15
+            operator (ball.position.x - player.position.x) 15
 
         left_ =
             not moveRight
