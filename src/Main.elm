@@ -35,9 +35,37 @@ type alias Vector =
     }
 
 
+divide : Vector -> Float -> Vector
+divide vec scalar =
+    times vec (1 / scalar)
+
+
+times : Vector -> Float -> Vector
+times vec scalar =
+    { x = vec.x * scalar
+    , y = vec.y * scalar
+    }
+
+
 distance : Vector -> Vector -> Float
 distance a b =
     (b.x - a.x) ^ 2 + (b.y - a.y) ^ 2 |> sqrt
+
+
+magnitude =
+    distance (Vector 0 0)
+
+
+toNormalVector : Vector -> Vector -> Vector
+toNormalVector v1 v2 =
+    { x = v2.x - v1.x
+    , y = v2.y - v1.y
+    }
+
+
+toVector : Coords -> Vector
+toVector coords =
+    { coords | x = toFloat coords.x, y = toFloat coords.y }
 
 
 type alias Coords =
@@ -57,6 +85,13 @@ type alias Player =
     }
 
 
+type alias Ball =
+    { position : Coords
+    , velocity : Vector
+    , radius : Int
+    }
+
+
 type alias Game =
     Coords
 
@@ -73,6 +108,7 @@ type alias Model =
     , ui : Ui
     , game : Game
     , wall : Wall
+    , ball : Ball
     }
 
 
@@ -91,6 +127,7 @@ initialModel =
     , ui = initialUi
     , game = { x = 500, y = 500 }
     , wall = { height = 50, width = 10 }
+    , ball = Ball (Coords 360 200) (Vector 0 0) 15
     }
 
 
@@ -115,7 +152,7 @@ type Msg
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
-update action ({ ui, player1, player2, game, wall } as model) =
+update action ({ ui, player1, player2, game, wall, ball } as model) =
     case action of
         ResizeWindow dimensions ->
             let
@@ -190,8 +227,22 @@ update action ({ ui, player1, player2, game, wall } as model) =
                                 else
                                     p
                            )
+
+                ball_ =
+                    ball
+                        |> applyVelocityToBall
+                        |> applyCollisionsToBall player1 player2
+
+                screen_ =
+                    if ball.radius > ball.position.y then
+                        GameoverScreen
+                    else
+                        PlayScreen
+
+                ui_ =
+                    { ui | screen = screen_ }
             in
-            ( { model | player1 = player1_, player2 = player2_ }, Cmd.none )
+            ( { model | player1 = player1_, player2 = player2_, ball = ball_, ui = ui_ }, Cmd.none )
 
         StartGame ->
             ( freshGame model, Cmd.none )
@@ -199,6 +250,70 @@ update action ({ ui, player1, player2, game, wall } as model) =
         TimeSecond _ ->
             --({ model | secondsPassed = model.secondsPassed+1 }, Cmd.none)
             ( model, Cmd.none )
+
+
+applyVelocityToBall : Ball -> Ball
+applyVelocityToBall ({ position, velocity } as ball) =
+    let
+        position_ =
+            { position
+                | x = position.x + round velocity.x
+                , y = position.y + round velocity.y
+            }
+
+        velocity_ =
+            { velocity | y = velocity.y - 0.3 }
+    in
+    { ball | position = position_, velocity = velocity_ }
+
+
+applyCollisionsToBall : Player -> Player -> Ball -> Ball
+applyCollisionsToBall p1 p2 ({ position } as ball) =
+    ball
+        |> collideWithPlayer p1
+        |> collideWithPlayer p2
+
+
+collideWithPlayer : Player -> Ball -> Ball
+collideWithPlayer player ({ velocity } as ball) =
+    let
+        vPlayerPosition =
+            toVector player.position
+
+        vBallPosition =
+            toVector ball.position
+
+        gap =
+            distance vPlayerPosition vBallPosition
+
+        didCollide =
+            round gap < playerRadius + ball.radius
+
+        unitNormal =
+            getUnitNormal vPlayerPosition vBallPosition
+
+        scaledNormal =
+            times unitNormal (magnitude ball.velocity)
+
+        velocity_ =
+            if didCollide then
+                scaledNormal
+            else
+                velocity
+    in
+    { ball | velocity = velocity_ }
+
+
+getUnitNormal : Vector -> Vector -> Vector
+getUnitNormal a b =
+    let
+        gap =
+            distance a b
+
+        normalVector =
+            toNormalVector a b
+    in
+    divide normalVector (magnitude normalVector)
 
 
 applyKeysToPlayerPosition : PressedKeys -> Wall -> Game -> Player -> Player
@@ -375,11 +490,6 @@ initialWindowSizeCommand =
 -- TODO: how do we scale this based on window/game size? move into Player model?
 
 
-ballRadius : Int
-ballRadius =
-    10
-
-
 playerRadius : Int
 playerRadius =
     25
@@ -456,13 +566,14 @@ renderHeader =
 
 
 renderPlayScreen : Model -> Html Msg
-renderPlayScreen { game, player1, player2, wall } =
+renderPlayScreen { game, player1, player2, wall, ball } =
     div
         []
         [ renderHeader
         , renderWall wall game
         , renderPlayer player1 game
         , renderPlayer player2 game
+        , renderBall ball game
         ]
 
 
@@ -492,7 +603,7 @@ renderPlayer player game =
             player.position
 
         top =
-            game.y - y - playerSize.y
+            gameY game playerRadius player.position
     in
     div
         [ style
@@ -508,3 +619,35 @@ renderPlayer player game =
             ]
         ]
         []
+
+
+renderBall : Ball -> Game -> Html Msg
+renderBall ball game =
+    let
+        { x, y } =
+            ball.position
+
+        top =
+            gameY game ball.radius ball.position
+
+        diameter =
+            ball.radius * 2
+    in
+    div
+        [ style
+            [ ( "position", "absolute" )
+            , ( "top", "0" )
+            , ( "left", toString -ball.radius ++ "px" )
+            , ( "transform", "translate(" ++ toString x ++ "px, " ++ toString top ++ "px)" )
+            , ( "background", Color.Convert.colorToHex Color.green )
+            , ( "width", toString diameter ++ "px" )
+            , ( "height", toString diameter ++ "px" )
+            , ( "border-radius", toString (diameter * 2) ++ "px" )
+            ]
+        ]
+        []
+
+
+gameY : Game -> Int -> Coords -> Int
+gameY game radius position =
+    game.y - position.y - radius
