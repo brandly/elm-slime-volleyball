@@ -273,14 +273,20 @@ update action ({ ui, player1, player2, game, wall, ball } as model) =
                 wallPos =
                     game.x // 2 - wall.width // 2
 
-                incrementScore : (Int -> Int -> Bool) -> Player -> Player
-                incrementScore operator player =
+                incrementScore : Player -> Player
+                incrementScore player =
                     let
+                        onOpponentsSide =
+                            if player.team == Left then
+                                ball.position.x < midCourt
+                            else
+                                ball.position.x > midCourt
+
                         midCourt =
                             game.x // 2
 
                         increment =
-                            hitGround && operator ball.position.x midCourt
+                            hitGround && onOpponentsSide
 
                         score_ =
                             if increment then
@@ -294,7 +300,7 @@ update action ({ ui, player1, player2, game, wall, ball } as model) =
                 player1_ =
                     player1
                         |> updatePlayer
-                        |> incrementScore (>)
+                        |> incrementScore
                         |> (\p ->
                                 if p.position.x + playerRadius > wallPos then
                                     let
@@ -312,7 +318,7 @@ update action ({ ui, player1, player2, game, wall, ball } as model) =
                 player2_ =
                     player2
                         |> updatePlayer
-                        |> incrementScore (<)
+                        |> incrementScore
                         |> (\p ->
                                 if p.position.x - playerRadius < wallPos + wall.width then
                                     let
