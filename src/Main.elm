@@ -150,7 +150,7 @@ update action ({ ui, player1, player2, game } as model) =
                 updatePlayer player =
                     player
                         |> maybeJump
-                        |> (\n -> applyKeysToPlayerPosition ui.pressedKeys n game)
+                        |> applyKeysToPlayerPosition ui.pressedKeys game
 
                 player1_ =
                     updatePlayer player1
@@ -168,8 +168,8 @@ update action ({ ui, player1, player2, game } as model) =
             ( model, Cmd.none )
 
 
-applyKeysToPlayerPosition : PressedKeys -> Player -> Game -> Player
-applyKeysToPlayerPosition pressedKeys player game =
+applyKeysToPlayerPosition : PressedKeys -> Game -> Player -> Player
+applyKeysToPlayerPosition pressedKeys game player =
     let
         player_ =
             applyVelocityToPlayer player
