@@ -4,7 +4,7 @@ import AnimationFrame
 import Color exposing (Color)
 import Color.Convert
 import Debug exposing (log)
-import Html exposing (Html, button, div, h1, text)
+import Html exposing (Html, button, div, h1, h2, text)
 import Html.Attributes exposing (style)
 import Html.Events exposing (onClick)
 import Keyboard exposing (KeyCode)
@@ -312,8 +312,20 @@ update action ({ ui, player1, player2, game, wall, ball } as model) =
                 hitGround =
                     ball.radius > ball.position.y
 
+                gameIsOver =
+                    player1_.score >= pointsToWin || player2_.score >= pointsToWin
+
+                screen_ =
+                    if gameIsOver then
+                        GameoverScreen
+                    else
+                        PlayScreen
+
+                ui_ =
+                    { ui | screen = screen_ }
+
                 model_ =
-                    { model | player1 = player1_, player2 = player2_, ball = ball_ }
+                    { model | player1 = player1_, player2 = player2_, ball = ball_, ui = ui_ }
 
                 model__ =
                     if hitGround then
@@ -668,7 +680,7 @@ view ({ ui, game } as model) =
                 renderPlayScreen model
 
             GameoverScreen ->
-                div [] [ text "game over" ]
+                renderGameOverScreen model
         ]
 
 
@@ -922,3 +934,18 @@ renderBall ball game =
 gameY : Game -> Int -> Coords -> Int
 gameY game radius position =
     game.y - position.y - radius
+
+
+renderGameOverScreen : Model -> Html Msg
+renderGameOverScreen ({ player1, player2 } as model) =
+    let
+        msg =
+            if player1.score > player2.score then
+                "wow u succ"
+            else
+                "p good"
+    in
+    div []
+        [ renderPlayScreen model
+        , h2 [ style [ ( "text-align", "center" ) ] ] [ text msg ]
+        ]
