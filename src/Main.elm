@@ -900,14 +900,17 @@ renderPlayer player ball game =
         playerTop =
             gameY game playerRadius player.position
 
-        pupilRadius =
-            eyeRadius // 2
-
         eyeRadius =
             8
 
+        pupilRadius =
+            eyeRadius // 2
+
         eyePosition =
             getEyePosition eyeRadius player
+
+        pupilPosition =
+            getPupilPosition eyeRadius pupilRadius (sum eyePosition (toVector player.position)) (toVector ball.position)
     in
     div
         [ style
@@ -940,13 +943,25 @@ renderPlayer player ball game =
                     , ( "height", toString (pupilRadius * 2) ++ "px" )
                     , ( "border-radius", toString pupilRadius ++ "px" )
                     , ( "position", "absolute" )
-                    , ( "left", toString (toFloat eyeRadius - toFloat pupilRadius) ++ "px" )
-                    , ( "bottom", toString (toFloat eyeRadius - toFloat pupilRadius) ++ "px" )
+                    , ( "left", toString pupilPosition.x ++ "px" )
+                    , ( "bottom", toString pupilPosition.y ++ "px" )
                     ]
                 ]
                 []
             ]
         ]
+
+
+getPupilPosition : Int -> Int -> Vector -> Vector -> Vector
+getPupilPosition eyeRadius pupilRadius eyePosition ballPosition =
+    let
+        center =
+            toVector { x = eyeRadius // 2, y = eyeRadius // 2 }
+
+        unitNormal =
+            getUnitNormal eyePosition ballPosition
+    in
+    sum center (times unitNormal (toFloat pupilRadius))
 
 
 getEyePosition : Int -> Player -> Vector
