@@ -47,6 +47,13 @@ times vec scalar =
     }
 
 
+sum : Vector -> Vector -> Vector
+sum a b =
+    { x = a.x + b.x
+    , y = a.y + b.y
+    }
+
+
 distance : Vector -> Vector -> Float
 distance a b =
     (b.x - a.x) ^ 2 + (b.y - a.y) ^ 2 |> sqrt
@@ -893,29 +900,14 @@ renderPlayer player ball game =
         playerTop =
             gameY game playerRadius player.position
 
-        unitNormal =
-            getUnitNormal (toVector player.position) (toVector ball.position)
-
-        scalar =
-            0.8
-
-        scaledPlayerRadius =
-            scalar * toFloat playerRadius
-
-        scaledEyeVector =
-            times unitNormal scaledPlayerRadius
+        pupilRadius =
+            eyeRadius // 2
 
         eyeRadius =
             8
 
-        eyeX =
-            scaledEyeVector.x + toFloat playerRadius - toFloat eyeRadius
-
-        eyeY =
-            toFloat playerRadius - scaledEyeVector.y
-
-        pupilRadius =
-            eyeRadius // 2
+        eyePosition =
+            getEyePosition eyeRadius player
     in
     div
         [ style
@@ -933,8 +925,8 @@ renderPlayer player ball game =
         [ div
             [ style
                 [ ( "position", "absolute" )
-                , ( "left", toString eyeX ++ "px" )
-                , ( "top", toString eyeY ++ "px" )
+                , ( "left", toString eyePosition.x ++ "px" )
+                , ( "top", toString eyePosition.y ++ "px" )
                 , ( "width", toString (eyeRadius * 2) ++ "px" )
                 , ( "height", toString (eyeRadius * 2) ++ "px" )
                 , ( "background", "white" )
@@ -955,6 +947,39 @@ renderPlayer player ball game =
                 []
             ]
         ]
+
+
+getEyePosition : Int -> Player -> Vector
+getEyePosition radius player =
+    let
+        vPlayerPosition =
+            toVector player.position
+
+        facing =
+            if player.team == Left then
+                1
+            else
+                -1
+
+        unitNormal =
+            getUnitNormal vPlayerPosition (sum vPlayerPosition (Vector facing 1))
+
+        scalar =
+            0.9
+
+        scaledPlayerRadius =
+            scalar * toFloat playerRadius
+
+        scaledEyeVector =
+            times unitNormal scaledPlayerRadius
+
+        eyeX =
+            scaledEyeVector.x + toFloat playerRadius - toFloat radius
+
+        eyeY =
+            toFloat playerRadius - scaledEyeVector.y
+    in
+    { x = eyeX, y = eyeY }
 
 
 renderBall : Ball -> Game -> Html Msg
