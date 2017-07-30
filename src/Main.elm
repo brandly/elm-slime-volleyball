@@ -803,6 +803,31 @@ renderGame { game, player1, player2, wall, ball } =
         ]
 
 
+renderCoords : Coords -> Game -> Html Msg
+renderCoords ({ x, y } as position) game =
+    let
+        size =
+            20
+
+        y_ =
+            gameY game (size // 2) position
+
+        x_ =
+            x - (size // 2)
+    in
+    div
+        [ style
+            [ ( "position", "absolute" )
+            , ( "border", "1px solid pink" )
+            , ( "height", toString size ++ "px" )
+            , ( "width", toString size ++ "px" )
+            , ( "left", toString x_ ++ "px" )
+            , ( "top", toString y_ ++ "px" )
+            ]
+        ]
+        []
+
+
 renderScore : Player -> Player -> Html Msg
 renderScore p1 p2 =
     div
