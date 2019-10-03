@@ -9,7 +9,6 @@ import Html.Events exposing (onClick)
 import Json.Decode as Decode
 import Set exposing (Set)
 import Task
-import Time
 import Tuple
 
 
@@ -244,7 +243,6 @@ type Msg
     = ResizeWindow Size
     | Tick Float
     | KeyChange Bool KeyCode
-    | TimeSecond Time.Posix
     | StartGame
 
 
@@ -402,10 +400,6 @@ update action ({ ui, player1, player2, game, wall, ball } as model) =
 
         StartGame ->
             ( freshGame model, Cmd.none )
-
-        TimeSecond _ ->
-            --({ model | secondsPassed = model.secondsPassed+1 }, Cmd.none)
-            ( model, Cmd.none )
 
 
 applyVelocityToBall : Ball -> Ball
@@ -660,28 +654,18 @@ jump ({ position, velocity } as player) =
     { player | velocity = velocity_ }
 
 
-keyPressed : KeyCode -> PressedKeys -> Bool
+keyPressed : KeyCode -> Set KeyCode -> Bool
 keyPressed keycode pressedKeys =
     Set.member keycode pressedKeys
-
-
-
---NoOp ->
---  (model, Cmd.none)
--- SUBSCRIPTIONS
 
 
 type alias Size =
     ( Int, Int )
 
 
-type alias PressedKeys =
-    Set KeyCode
-
-
 type alias Ui =
     { windowSize : Size
-    , pressedKeys : PressedKeys
+    , pressedKeys : Set KeyCode
     , screen : Screen
     }
 
@@ -711,13 +695,10 @@ subscriptions { ui } =
 
         animation =
             [ Browser.Events.onAnimationFrameDelta Tick ]
-
-        seconds =
-            Time.every 1000 TimeSecond
     in
     (case ui.screen of
         StartScreen ->
-            [ window, seconds ] ++ keys
+            window :: keys
 
         PlayScreen ->
             window :: keys ++ animation
