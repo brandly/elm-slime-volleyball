@@ -5,6 +5,7 @@
 ### dev
 
 ```shell
-$ elm-reactor
-$ open http://localhost:8000/src/Main.elm
+$ npm install
+$ npm start
+$ open dist/index.html
 ```
