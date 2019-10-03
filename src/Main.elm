@@ -108,8 +108,7 @@ type Team
 
 
 type alias Player =
-    { name : String
-    , position : Coords
+    { position : Coords
     , controls : Controls
     , color : Color
     , velocity : Vector
@@ -126,7 +125,7 @@ type alias Ball =
     }
 
 
-type alias Game =
+type alias Viewport =
     Coords
 
 
@@ -140,7 +139,7 @@ type alias Model =
     { player1 : Player
     , player2 : Player
     , ui : Ui
-    , game : Game
+    , viewport : Viewport
     , wall : Wall
     , ball : Ball
     }
@@ -185,7 +184,6 @@ initialModel : Model
 initialModel =
     { player1 =
         Player
-            "cool"
             (Coords (containerWidth // 2 - 100) 0)
             wasdControls
             Color.blue
@@ -195,7 +193,6 @@ initialModel =
             Left
     , player2 =
         Player
-            "lame"
             (Coords (containerWidth // 2 + 100) 0)
             arrowControls
             Color.red
@@ -204,14 +201,14 @@ initialModel =
             (Ai False (<))
             Right
     , ui = initialUi
-    , game = { x = 500, y = 500 }
+    , viewport = { x = 500, y = 500 }
     , wall = { height = 50, width = 10 }
     , ball = Ball (Coords (containerWidth // 2) 200) (Vector 0 0) 15
     }
 
 
 freshGame : Model -> Model
-freshGame { ui, game, player1, player2 } =
+freshGame { ui, viewport, player1, player2 } =
     let
         ui_ =
             { ui
@@ -225,18 +222,18 @@ freshGame { ui, game, player1, player2 } =
         player2_ =
             { player2 | score = 0 }
     in
-    { initialModel | ui = ui_, game = game, player1 = player1_, player2 = player2_ }
+    { initialModel | ui = ui_, viewport = viewport, player1 = player1_, player2 = player2_ }
 
 
 freshDrop : Model -> Model
-freshDrop { ui, game, player1, player2 } =
+freshDrop { ui, viewport, player1, player2 } =
     let
         ui_ =
             { ui
                 | screen = PlayScreen
             }
     in
-    { initialModel | ui = ui_, game = game, player1 = player1, player2 = player2 }
+    { initialModel | ui = ui_, viewport = viewport, player1 = player1, player2 = player2 }
 
 
 type Msg
@@ -247,7 +244,7 @@ type Msg
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
-update action ({ ui, player1, player2, game, wall, ball } as model) =
+update action ({ ui, player1, player2, viewport, wall, ball } as model) =
     case action of
         ResizeWindow dimensions ->
             let
@@ -260,13 +257,13 @@ update action ({ ui, player1, player2, game, wall, ball } as model) =
                         |> (\n -> n / 21)
                         |> round
 
-                game_ : Game
-                game_ =
+                viewport_ : Viewport
+                viewport_ =
                     { x = width
                     , y = height
                     }
             in
-            ( { model | ui = { ui | windowSize = dimensions }, game = game_ }, Cmd.none )
+            ( { model | ui = { ui | windowSize = dimensions }, viewport = viewport_ }, Cmd.none )
 
         KeyChange pressed keycode ->
             ( handleKeyChange pressed keycode model, Cmd.none )
@@ -294,11 +291,11 @@ update action ({ ui, player1, player2, game, wall, ball } as model) =
                 updatePlayer player =
                     player
                         |> maybeJump
-                        |> (\p -> applyControlsToPlayerPosition game (getActiveControlsForPlayer p) p)
+                        |> (\p -> applyControlsToPlayerPosition viewport (getActiveControlsForPlayer p) p)
 
                 wallPos : Int
                 wallPos =
-                    game.x // 2 - wall.width // 2
+                    viewport.x // 2 - wall.width // 2
 
                 incrementScore : Player -> Player
                 incrementScore player =
@@ -311,7 +308,7 @@ update action ({ ui, player1, player2, game, wall, ball } as model) =
                                 ball.position.x < midCourt
 
                         midCourt =
-                            game.x // 2
+                            viewport.x // 2
 
                         increment =
                             hitGround && onOpponentsSide
@@ -368,7 +365,7 @@ update action ({ ui, player1, player2, game, wall, ball } as model) =
                     ball
                         |> applyVelocityToBall
                         |> applyCollisionsToBall player1 player2
-                        |> applyGameBoundariesToBall game
+                        |> applyGameBoundariesToBall viewport
 
                 hitGround =
                     ball.radius > ball.position.y
@@ -464,7 +461,7 @@ getUnitNormal a b =
     divide normalVector (magnitude normalVector)
 
 
-applyControlsToPlayerPosition : Game -> ActiveControls -> Player -> Player
+applyControlsToPlayerPosition : Viewport -> ActiveControls -> Player -> Player
 applyControlsToPlayerPosition game active player =
     let
         player_ =
@@ -531,7 +528,7 @@ getAiActiveControls ball ({ team } as player) =
     }
 
 
-applyGameBoundaries : Game -> Coords -> Int
+applyGameBoundaries : Viewport -> Coords -> Int
 applyGameBoundaries game position =
     if position.x < playerRadius then
         playerRadius
@@ -543,7 +540,7 @@ applyGameBoundaries game position =
         position.x
 
 
-applyGameBoundariesToBall : Game -> Ball -> Ball
+applyGameBoundariesToBall : Viewport -> Ball -> Ball
 applyGameBoundariesToBall game ({ position, radius, velocity } as ball) =
     let
         hitBoundaries =
@@ -752,7 +749,7 @@ renderStartScreen : Model -> Html Msg
 renderStartScreen model =
     let
         topMargin =
-            model.game.y // 2 - 48
+            model.viewport.y // 2 - 48
     in
     div
         []
@@ -789,21 +786,23 @@ renderPlayScreen ({ player1, player2 } as model) =
 
 
 renderGame : Model -> Html Msg
-renderGame { game, player1, player2, wall, ball } =
+renderGame { viewport, player1, player2, wall, ball } =
     div
         [ style "position" "relative"
         , style "border" "1px solid #EEE"
-        , style "height" (String.fromInt game.y ++ "px")
+        , style "height" (String.fromInt viewport.y ++ "px")
         , style "width" "100%"
         ]
-        [ renderWall wall game
-        , renderPlayer player1 ball game
-        , renderPlayer player2 ball game
-        , renderBall ball game
-        ]
+        (List.map (\render -> render viewport)
+            [ renderWall wall
+            , renderPlayer player1 ball
+            , renderPlayer player2 ball
+            , renderBall ball
+            ]
+        )
 
 
-renderCoords : Coords -> Game -> Html Msg
+renderCoords : Coords -> Viewport -> Html Msg
 renderCoords ({ x } as position) game =
     let
         size =
@@ -887,7 +886,7 @@ renderScoreDots player =
         dots
 
 
-renderWall : Wall -> Game -> Html Msg
+renderWall : Wall -> Viewport -> Html Msg
 renderWall wall game =
     let
         left =
@@ -904,7 +903,7 @@ renderWall wall game =
         []
 
 
-renderPlayer : Player -> Ball -> Game -> Html Msg
+renderPlayer : Player -> Ball -> Viewport -> Html Msg
 renderPlayer player ball game =
     let
         { x } =
@@ -985,16 +984,17 @@ getEyePosition radius player =
                 -1
 
         unitNormal =
-            getUnitNormal vPlayerPosition (sum vPlayerPosition (Vector facing 1))
+            Vector facing 1
+                |> sum vPlayerPosition
+                |> getUnitNormal vPlayerPosition
 
         scalar =
             0.9
 
-        scaledPlayerRadius =
-            scalar * toFloat playerRadius
-
         scaledEyeVector =
-            times unitNormal scaledPlayerRadius
+            scalar
+                * toFloat playerRadius
+                |> times unitNormal
 
         eyeX =
             scaledEyeVector.x + toFloat playerRadius - toFloat radius
@@ -1005,7 +1005,7 @@ getEyePosition radius player =
     { x = eyeX, y = eyeY }
 
 
-renderBall : Ball -> Game -> Html Msg
+renderBall : Ball -> Viewport -> Html Msg
 renderBall ball game =
     let
         { x } =
@@ -1030,9 +1030,9 @@ renderBall ball game =
         []
 
 
-gameY : Game -> Int -> Coords -> Int
-gameY game radius position =
-    game.y - position.y - radius
+gameY : Viewport -> Int -> Coords -> Int
+gameY viewport radius position =
+    viewport.y - position.y - radius
 
 
 renderGameOverScreen : Model -> Html Msg
