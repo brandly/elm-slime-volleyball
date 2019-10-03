@@ -1,9 +1,15 @@
 {
   "scripts": {
-    "build": "elm make src/Main.elm --output dist/the.js"
+    "start": "npm run build && npm run html",
+    "build": "elm make src/Main.elm --output dist/the.js",
+    "html": "cp src/index.html dist",
+    "deploy": "npm run build -- --optimize && npm run compress && npm run html && gh-pages --dist dist/",
+    "compress": "uglifyjs dist/the.js -o dist/the.js --compress --mangle"
   },
-  "dependencies": {
+  "devDependencies": {
     "elm": "0.19.0-no-deps",
-    "elm-upgrade": "0.19.6"
-  }
+    "gh-pages": "2.1.1",
+    "uglify-js": "3.6.0"
+  },
+  "dependencies": {}
 }
