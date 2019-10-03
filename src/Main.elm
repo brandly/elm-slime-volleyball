@@ -1,24 +1,28 @@
 module Main exposing (..)
 
-import AnimationFrame
+import Browser
+import Browser.Events exposing (onKeyDown, onKeyUp)
 import Color exposing (Color)
-import Color.Convert
-import Debug exposing (log)
 import Html exposing (Html, button, div, h1, h2, text)
 import Html.Attributes exposing (style)
 import Html.Events exposing (onClick)
-import Keyboard exposing (KeyCode)
+import Json.Decode as Decode
 import Set exposing (Set)
 import Task
-import Time exposing (Time, second)
+import Time
 import Tuple
-import Window
 
 
-main : Program Never Model Msg
+type alias Flags =
+    { width : Int, height : Int }
+
+
+main : Program Flags Model Msg
 main =
-    Html.program
-        { init = ( initialModel, initialWindowSizeCommand )
+    Browser.element
+        { init =
+            \{ width, height } ->
+                update (ResizeWindow ( width, height )) initialModel
         , update = update
         , view = view
         , subscriptions = subscriptions
@@ -59,6 +63,7 @@ distance a b =
     (b.x - a.x) ^ 2 + (b.y - a.y) ^ 2 |> sqrt
 
 
+magnitude : Vector -> Float
 magnitude =
     distance (Vector 0 0)
 
@@ -72,7 +77,7 @@ toNormalVector v1 v2 =
 
 toVector : Coords -> Vector
 toVector coords =
-    { coords | x = toFloat coords.x, y = toFloat coords.y }
+    { x = toFloat coords.x, y = toFloat coords.y }
 
 
 type alias Coords =
@@ -85,6 +90,10 @@ type alias Ai =
     { active : Bool
     , direction : Int -> Int -> Bool
     }
+
+
+type alias KeyCode =
+    String
 
 
 type alias Controls =
@@ -139,13 +148,13 @@ type alias Model =
 
 
 keyMap =
-    { w = 87
-    , a = 65
-    , d = 68
-    , leftArrow = 37
-    , rightArrow = 39
-    , upArrow = 38
-    , spacebar = 32
+    { w = "w"
+    , a = "a"
+    , d = "d"
+    , leftArrow = "ArrowLeft"
+    , rightArrow = "ArrowRight"
+    , upArrow = "ArrowUp"
+    , spacebar = " "
     }
 
 
@@ -233,9 +242,9 @@ freshDrop { ui, game, player1, player2 } =
 
 type Msg
     = ResizeWindow Size
-    | Tick Time
+    | Tick Float
     | KeyChange Bool KeyCode
-    | TimeSecond Time
+    | TimeSecond Time.Posix
     | StartGame
 
 
@@ -253,22 +262,23 @@ update action ({ ui, player1, player2, game, wall, ball } as model) =
                         |> (\n -> n / 21)
                         |> round
 
-                game : Game
-                game =
+                game_ : Game
+                game_ =
                     { x = width
                     , y = height
                     }
             in
-            ( { model | ui = { ui | windowSize = dimensions }, game = game }, Cmd.none )
+            ( { model | ui = { ui | windowSize = dimensions }, game = game_ }, Cmd.none )
 
         KeyChange pressed keycode ->
             ( handleKeyChange pressed keycode model, Cmd.none )
 
-        Tick delta ->
+        Tick _ ->
             let
                 maybeJump player =
                     if (getActiveControlsForPlayer player).jump && player.position.y == 0 then
                         jump player
+
                     else
                         player
 
@@ -276,6 +286,7 @@ update action ({ ui, player1, player2, game, wall, ball } as model) =
                 getActiveControlsForPlayer player =
                     if player.ai.active then
                         getAiActiveControls ball player
+
                     else
                         { left = keyPressed player.controls.left ui.pressedKeys
                         , right = keyPressed player.controls.right ui.pressedKeys
@@ -297,6 +308,7 @@ update action ({ ui, player1, player2, game, wall, ball } as model) =
                         onOpponentsSide =
                             if player.team == Left then
                                 ball.position.x > midCourt
+
                             else
                                 ball.position.x < midCourt
 
@@ -309,6 +321,7 @@ update action ({ ui, player1, player2, game, wall, ball } as model) =
                         score_ =
                             if increment then
                                 player.score + 1
+
                             else
                                 player.score
                     in
@@ -329,6 +342,7 @@ update action ({ ui, player1, player2, game, wall, ball } as model) =
                                             { position | x = wallPos - playerRadius }
                                     in
                                     { p | position = position_ }
+
                                 else
                                     p
                            )
@@ -347,6 +361,7 @@ update action ({ ui, player1, player2, game, wall, ball } as model) =
                                             { position | x = wallPos + wall.width + playerRadius }
                                     in
                                     { p | position = position_ }
+
                                 else
                                     p
                            )
@@ -366,6 +381,7 @@ update action ({ ui, player1, player2, game, wall, ball } as model) =
                 screen_ =
                     if gameIsOver then
                         GameoverScreen
+
                     else
                         PlayScreen
 
@@ -378,6 +394,7 @@ update action ({ ui, player1, player2, game, wall, ball } as model) =
                 model__ =
                     if hitGround then
                         freshDrop model_
+
                     else
                         model_
             in
@@ -407,7 +424,7 @@ applyVelocityToBall ({ position, velocity } as ball) =
 
 
 applyCollisionsToBall : Player -> Player -> Ball -> Ball
-applyCollisionsToBall p1 p2 ({ position } as ball) =
+applyCollisionsToBall p1 p2 ball =
     ball
         |> collideWithPlayer p1
         |> collideWithPlayer p2
@@ -437,6 +454,7 @@ collideWithPlayer player ({ velocity } as ball) =
         velocity_ =
             if didCollide then
                 scaledNormal
+
             else
                 velocity
     in
@@ -446,9 +464,6 @@ collideWithPlayer player ({ velocity } as ball) =
 getUnitNormal : Vector -> Vector -> Vector
 getUnitNormal a b =
     let
-        gap =
-            distance a b
-
         normalVector =
             toNormalVector a b
     in
@@ -467,8 +482,10 @@ applyControlsToPlayerPosition game active player =
         move =
             if active.left then
                 -5
+
             else if active.right then
                 5
+
             else
                 0
 
@@ -489,11 +506,12 @@ type alias ActiveControls =
 
 
 getAiActiveControls : Ball -> Player -> ActiveControls
-getAiActiveControls ball ({ ai, team } as player) =
+getAiActiveControls ball ({ team } as player) =
     let
         operator =
             if team == Left then
                 (>)
+
             else
                 (<)
 
@@ -509,6 +527,7 @@ getAiActiveControls ball ({ ai, team } as player) =
         jump_ =
             if ball.position.y < playerRadius * 2 then
                 True
+
             else
                 False
     in
@@ -522,8 +541,10 @@ applyGameBoundaries : Game -> Coords -> Int
 applyGameBoundaries game position =
     if position.x < playerRadius then
         playerRadius
+
     else if position.x > game.x - playerRadius then
         game.x - playerRadius
+
     else
         position.x
 
@@ -534,14 +555,17 @@ applyGameBoundariesToBall game ({ position, radius, velocity } as ball) =
         hitBoundaries =
             if position.x < radius then
                 True
+
             else if position.x > game.x - radius then
                 True
+
             else
                 False
 
         x_ =
             if hitBoundaries then
                 velocity.x * -1
+
             else
                 velocity.x
     in
@@ -560,6 +584,7 @@ applyVelocityToPlayer ({ position, velocity } as player) =
         vy_ =
             if position_.y > 0 then
                 velocity.y - 1.0
+
             else
                 velocity.y
 
@@ -570,11 +595,12 @@ applyVelocityToPlayer ({ position, velocity } as player) =
 
 
 handleKeyChange : Bool -> KeyCode -> Model -> Model
-handleKeyChange pressed keycode ({ ui, player1, player2 } as model) =
+handleKeyChange pressed keycode ({ ui } as model) =
     let
         fn =
             if pressed then
                 Set.insert
+
             else
                 Set.remove
 
@@ -590,6 +616,7 @@ handleKeyChange pressed keycode ({ ui, player1, player2 } as model) =
         screen_ =
             if spacebarPressed then
                 PlayScreen
+
             else
                 ui_.screen
     in
@@ -605,6 +632,7 @@ handleKeyChange pressed keycode ({ ui, player1, player2 } as model) =
                 model_ =
                     if spacebarPressed then
                         freshGame model
+
                     else
                         model
             in
@@ -622,6 +650,7 @@ jump ({ position, velocity } as player) =
         vy =
             if position.y == 0 then
                 jumpVelocity
+
             else
                 velocity.y
 
@@ -667,40 +696,36 @@ subscriptions : Model -> Sub Msg
 subscriptions { ui } =
     let
         window =
-            Window.resizes (\{ width, height } -> ResizeWindow ( width, height ))
+            Browser.Events.onResize (\width height -> ResizeWindow ( width, height ))
 
         keys =
-            [ Keyboard.downs (KeyChange True)
-            , Keyboard.ups (KeyChange False)
+            [ Browser.Events.onKeyDown
+                (Decode.field "key" Decode.string
+                    |> Decode.map (KeyChange True)
+                )
+            , Browser.Events.onKeyUp
+                (Decode.field "key" Decode.string
+                    |> Decode.map (KeyChange False)
+                )
             ]
 
         animation =
-            [ AnimationFrame.diffs Tick ]
+            [ Browser.Events.onAnimationFrameDelta Tick ]
 
         seconds =
-            Time.every Time.second TimeSecond
+            Time.every 1000 TimeSecond
     in
     (case ui.screen of
         StartScreen ->
             [ window, seconds ] ++ keys
 
         PlayScreen ->
-            [ window ] ++ keys ++ animation
+            window :: keys ++ animation
 
         GameoverScreen ->
-            [ window ] ++ keys
+            window :: keys
     )
         |> Sub.batch
-
-
-initialWindowSizeCommand : Cmd Msg
-initialWindowSizeCommand =
-    Task.perform (\{ width, height } -> ResizeWindow ( width, height )) Window.size
-
-
-
--- VIEW
--- TODO: how do we scale this based on window/game size? move into Player model?
 
 
 playerRadius : Int
@@ -721,16 +746,14 @@ containerWidth =
 
 
 view : Model -> Html Msg
-view ({ ui, game } as model) =
+view ({ ui } as model) =
     div
-        [ style
-            [ ( "box-sizing", "border-box" )
-            , ( "position", "relative" )
-            , ( "width", "100%" )
-            , ( "max-width", toString containerWidth ++ "px" )
-            , ( "margin", "0 auto" )
-            , ( "font-family", "sans-serif" )
-            ]
+        [ style "box-sizing" "border-box"
+        , style "position" "relative"
+        , style "width" "100%"
+        , style "max-width" (String.fromInt containerWidth ++ "px")
+        , style "margin" "0 auto"
+        , style "font-family" "sans-serif"
         ]
         [ case ui.screen of
             StartScreen ->
@@ -755,17 +778,15 @@ renderStartScreen model =
         [ renderHeader
         , button
             [ onClick StartGame
-            , style
-                [ ( "display", "block" )
-                , ( "margin", toString topMargin ++ "px auto 0" )
-                , ( "background", Color.Convert.colorToHex Color.blue )
-                , ( "color", Color.Convert.colorToHex Color.white )
-                , ( "border", "none" )
-                , ( "font-size", "36px" )
-                , ( "padding", "12px 24px" )
-                , ( "border-radius", "3px" )
-                , ( "letter-spacing", "2px" )
-                ]
+            , style "display" "block"
+            , style "margin" (String.fromInt topMargin ++ "px auto 0")
+            , style "background" (Color.toCssString Color.blue)
+            , style "color" (Color.toCssString Color.white)
+            , style "border" "none"
+            , style "font-size" "36px"
+            , style "padding" "12px 24px"
+            , style "border-radius" "3px"
+            , style "letter-spacing" "2px"
             ]
             [ text "start" ]
         ]
@@ -773,7 +794,7 @@ renderStartScreen model =
 
 renderHeader : Html Msg
 renderHeader =
-    h1 [ style [ ( "text-align", "center" ), ( "margin", "48px 0 36px" ) ] ] [ text "~ slime volleyball ~" ]
+    h1 [ style "text-align" "center", style "margin" "48px 0 36px" ] [ text "~ slime volleyball ~" ]
 
 
 renderPlayScreen : Model -> Html Msg
@@ -789,12 +810,10 @@ renderPlayScreen ({ player1, player2 } as model) =
 renderGame : Model -> Html Msg
 renderGame { game, player1, player2, wall, ball } =
     div
-        [ style
-            [ ( "position", "relative" )
-            , ( "border", "1px solid #EEE" )
-            , ( "height", toString game.y ++ "px" )
-            , ( "width", "100%" )
-            ]
+        [ style "position" "relative"
+        , style "border" "1px solid #EEE"
+        , style "height" (String.fromInt game.y ++ "px")
+        , style "width" "100%"
         ]
         [ renderWall wall game
         , renderPlayer player1 ball game
@@ -804,7 +823,7 @@ renderGame { game, player1, player2, wall, ball } =
 
 
 renderCoords : Coords -> Game -> Html Msg
-renderCoords ({ x, y } as position) game =
+renderCoords ({ x } as position) game =
     let
         size =
             20
@@ -816,14 +835,12 @@ renderCoords ({ x, y } as position) game =
             x - (size // 2)
     in
     div
-        [ style
-            [ ( "position", "absolute" )
-            , ( "border", "1px solid pink" )
-            , ( "height", toString size ++ "px" )
-            , ( "width", toString size ++ "px" )
-            , ( "left", toString x_ ++ "px" )
-            , ( "top", toString y_ ++ "px" )
-            ]
+        [ style "position" "absolute"
+        , style "border" "1px solid pink"
+        , style "height" (String.fromFloat size ++ "px")
+        , style "width" (String.fromFloat size ++ "px")
+        , style "left" (String.fromInt x_ ++ "px")
+        , style "top" (String.fromInt y_ ++ "px")
         ]
         []
 
@@ -831,21 +848,16 @@ renderCoords ({ x, y } as position) game =
 renderScore : Player -> Player -> Html Msg
 renderScore p1 p2 =
     div
-        [ style
-            [ ( "width", "100%" ) ]
+        [ style "width" "100%"
         ]
         [ div
-            [ style
-                [ ( "width", "50%" )
-                , ( "display", "inline-block" )
-                ]
+            [ style "width" "50%"
+            , style "display" "inline-block"
             ]
             [ renderScoreDots p1 ]
         , div
-            [ style
-                [ ( "width", "50%" )
-                , ( "display", "inline-block" )
-                ]
+            [ style "width" "50%"
+            , style "display" "inline-block"
             ]
             [ renderScoreDots p2 ]
         ]
@@ -865,19 +877,18 @@ renderScoreDots player =
         background index =
             if index <= player.score then
                 player.color
+
             else
                 Color.white
 
         makeDot index =
             div
-                [ style
-                    [ ( "display", "inline-block" )
-                    , ( "width", toString size ++ "px" )
-                    , ( "height", toString size ++ "px" )
-                    , ( "border", "1px solid black" )
-                    , ( "border-radius", toString size ++ "px" )
-                    , ( "background", Color.Convert.colorToHex (background index) )
-                    ]
+                [ style "display" "inline-block"
+                , style "width" (String.fromFloat size ++ "px")
+                , style "height" (String.fromFloat size ++ "px")
+                , style "border" "1px solid black"
+                , style "border-radius" (String.fromFloat size ++ "px")
+                , style "background" (Color.toCssString (background index))
                 ]
                 []
 
@@ -886,13 +897,11 @@ renderScoreDots player =
                 |> List.map makeDot
     in
     div
-        [ style
-            [ ( "display", "flex" )
-            , ( "flex-direction", "row" )
-            , ( "justify-content", "space-between" )
-            , ( "padding", toString (size // 2) ++ "px" )
-            , ( "margin", toString size ++ "px 0" )
-            ]
+        [ style "display" "flex"
+        , style "flex-direction" "row"
+        , style "justify-content" "space-between"
+        , style "padding" (String.fromInt (size // 2) ++ "px")
+        , style "margin" (String.fromInt size ++ "px 0")
         ]
         dots
 
@@ -904,14 +913,12 @@ renderWall wall game =
             game.x // 2 - wall.width // 2
     in
     div
-        [ style
-            [ ( "width", toString wall.width ++ "px" )
-            , ( "height", toString wall.height ++ "px" )
-            , ( "background", "black" )
-            , ( "position", "absolute" )
-            , ( "left", toString left ++ "px" )
-            , ( "bottom", "0" )
-            ]
+        [ style "width" (String.fromInt wall.width ++ "px")
+        , style "height" (String.fromInt wall.height ++ "px")
+        , style "background" "black"
+        , style "position" "absolute"
+        , style "left" (String.fromInt left ++ "px")
+        , style "bottom" "0"
         ]
         []
 
@@ -919,7 +926,7 @@ renderWall wall game =
 renderPlayer : Player -> Ball -> Game -> Html Msg
 renderPlayer player ball game =
     let
-        { x, y } =
+        { x } =
             player.position
 
         playerTop =
@@ -938,39 +945,33 @@ renderPlayer player ball game =
             getPupilPosition eyeRadius pupilRadius (sum eyePosition (toVector player.position)) (toVector ball.position)
     in
     div
-        [ style
-            [ ( "position", "absolute" )
-            , ( "top", "0" )
-            , ( "left", toString -playerRadius ++ "px" )
-            , ( "transform", "translate(" ++ toString x ++ "px, " ++ toString playerTop ++ "px)" )
-            , ( "background", Color.Convert.colorToHex player.color )
-            , ( "width", toString playerSize.x ++ "px" )
-            , ( "height", toString playerSize.y ++ "px" )
-            , ( "border-top-left-radius", toString (playerSize.x * 2) ++ "px" )
-            , ( "border-top-right-radius", toString (playerSize.x * 2) ++ "px" )
-            ]
+        [ style "position" "absolute"
+        , style "top" "0"
+        , style "left" (String.fromInt -playerRadius ++ "px")
+        , style "transform" ("translate(" ++ String.fromInt x ++ "px, " ++ String.fromInt playerTop ++ "px)")
+        , style "background" (Color.toCssString player.color)
+        , style "width" (String.fromInt playerSize.x ++ "px")
+        , style "height" (String.fromInt playerSize.y ++ "px")
+        , style "border-top-left-radius" (String.fromInt (playerSize.x * 2) ++ "px")
+        , style "border-top-right-radius" (String.fromInt (playerSize.x * 2) ++ "px")
         ]
         [ div
-            [ style
-                [ ( "position", "absolute" )
-                , ( "left", toString eyePosition.x ++ "px" )
-                , ( "top", toString eyePosition.y ++ "px" )
-                , ( "width", toString (eyeRadius * 2) ++ "px" )
-                , ( "height", toString (eyeRadius * 2) ++ "px" )
-                , ( "background", "white" )
-                , ( "border-radius", toString eyeRadius ++ "px" )
-                ]
+            [ style "position" "absolute"
+            , style "left" (String.fromFloat eyePosition.x ++ "px")
+            , style "top" (String.fromFloat eyePosition.y ++ "px")
+            , style "width" (String.fromFloat (eyeRadius * 2) ++ "px")
+            , style "height" (String.fromFloat (eyeRadius * 2) ++ "px")
+            , style "background" "white"
+            , style "border-radius" (String.fromFloat eyeRadius ++ "px")
             ]
             [ div
-                [ style
-                    [ ( "background", "black" )
-                    , ( "width", toString (pupilRadius * 2) ++ "px" )
-                    , ( "height", toString (pupilRadius * 2) ++ "px" )
-                    , ( "border-radius", toString pupilRadius ++ "px" )
-                    , ( "position", "absolute" )
-                    , ( "left", toString pupilPosition.x ++ "px" )
-                    , ( "bottom", toString pupilPosition.y ++ "px" )
-                    ]
+                [ style "background" "black"
+                , style "width" (String.fromInt (pupilRadius * 2) ++ "px")
+                , style "height" (String.fromInt (pupilRadius * 2) ++ "px")
+                , style "border-radius" (String.fromInt pupilRadius ++ "px")
+                , style "position" "absolute"
+                , style "left" (String.fromFloat pupilPosition.x ++ "px")
+                , style "bottom" (String.fromFloat pupilPosition.y ++ "px")
                 ]
                 []
             ]
@@ -998,6 +999,7 @@ getEyePosition radius player =
         facing =
             if player.team == Left then
                 1
+
             else
                 -1
 
@@ -1025,7 +1027,7 @@ getEyePosition radius player =
 renderBall : Ball -> Game -> Html Msg
 renderBall ball game =
     let
-        { x, y } =
+        { x } =
             ball.position
 
         top =
@@ -1035,16 +1037,14 @@ renderBall ball game =
             ball.radius * 2
     in
     div
-        [ style
-            [ ( "position", "absolute" )
-            , ( "top", "0" )
-            , ( "left", toString -ball.radius ++ "px" )
-            , ( "transform", "translate(" ++ toString x ++ "px, " ++ toString top ++ "px)" )
-            , ( "background", Color.Convert.colorToHex Color.green )
-            , ( "width", toString diameter ++ "px" )
-            , ( "height", toString diameter ++ "px" )
-            , ( "border-radius", toString (diameter * 2) ++ "px" )
-            ]
+        [ style "position" "absolute"
+        , style "top" "0"
+        , style "left" (String.fromInt -ball.radius ++ "px")
+        , style "transform" ("translate(" ++ String.fromInt x ++ "px, " ++ String.fromInt top ++ "px)")
+        , style "background" (Color.toCssString Color.green)
+        , style "width" (String.fromInt diameter ++ "px")
+        , style "height" (String.fromInt diameter ++ "px")
+        , style "border-radius" (String.fromInt (diameter * 2) ++ "px")
         ]
         []
 
@@ -1060,10 +1060,11 @@ renderGameOverScreen ({ player1, player2 } as model) =
         msg =
             if player1.score > player2.score then
                 "wow u succ"
+
             else
                 "p good"
     in
     div []
         [ renderPlayScreen model
-        , h2 [ style [ ( "text-align", "center" ) ] ] [ text msg ]
+        , h2 [ style "text-align" "center" ] [ text msg ]
         ]

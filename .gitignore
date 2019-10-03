@@ -2,4 +2,5 @@ elm-stuff/
 build/
 dist/
 gh-pages/
+node_modules/
 
