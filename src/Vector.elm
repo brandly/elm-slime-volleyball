@@ -1,4 +1,4 @@
-module Vector exposing (Vector, difference, distance, divide, magnitude, sum, times)
+module Vector exposing (Vector, difference, distance, divide, magnitude, sum, times, unitNormal)
 
 
 type alias Vector =
@@ -41,3 +41,12 @@ difference v1 v2 =
     { x = v2.x - v1.x
     , y = v2.y - v1.y
     }
+
+
+unitNormal : Vector -> Vector -> Vector
+unitNormal a b =
+    let
+        diff =
+            difference a b
+    in
+    divide diff (magnitude diff)

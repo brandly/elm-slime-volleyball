@@ -190,7 +190,10 @@ initialModel =
 
 initialBall : Ball
 initialBall =
-    Ball (Coords (containerWidth // 2) 200) (Vector 0 0) 15
+    { position = Coords (containerWidth // 2) 200
+    , velocity = Vector 0 0
+    , radius = 15
+    }
 
 
 freshGame : Model -> Model
@@ -341,7 +344,7 @@ update action ({ ui, player1, player2, viewport, wall, ball } as model) =
                     ball
                         |> applyVelocityToBall
                         |> applyCollisionsToBall player1 player2
-                        |> applyGameBoundariesToBall viewport
+                        |> applyViewportBoundariesToBall viewport
 
                 hitGround =
                     ball.radius > ball.position.y
@@ -413,7 +416,7 @@ collideWithPlayer player ({ velocity } as ball) =
             round gap < playerRadius + ball.radius
 
         unitNormal =
-            getUnitNormal vPlayerPosition vBallPosition
+            Vector.unitNormal vPlayerPosition vBallPosition
 
         scaledNormal =
             Vector.times unitNormal (Vector.magnitude ball.velocity)
@@ -426,15 +429,6 @@ collideWithPlayer player ({ velocity } as ball) =
                 velocity
     in
     { ball | velocity = velocity_ }
-
-
-getUnitNormal : Vector -> Vector -> Vector
-getUnitNormal a b =
-    let
-        diff =
-            Vector.difference a b
-    in
-    Vector.divide diff (Vector.magnitude diff)
 
 
 applyControlsToPlayerPosition : Viewport -> ActiveControls -> Player -> Player
@@ -457,7 +451,7 @@ applyControlsToPlayerPosition game active player =
                 0
 
         x =
-            applyGameBoundaries game { position | x = position.x + move }
+            applyViewportBoundaries game { position | x = position.x + move }
 
         position_ =
             { position | x = x }
@@ -475,37 +469,17 @@ type alias ActiveControls =
 getAiActiveControls : Ball -> Player -> ActiveControls
 getAiActiveControls ball ({ team } as player) =
     let
-        operator =
-            if team == Left then
-                (>)
-
-            else
-                (<)
-
         moveRight =
-            operator (ball.position.x - player.position.x) 15
-
-        left_ =
-            not moveRight
-
-        right_ =
-            moveRight
-
-        jump_ =
-            if ball.position.y < playerRadius * 2 then
-                True
-
-            else
-                False
+            (ball.position.x + ball.radius) > (player.position.x + playerRadius)
     in
-    { left = left_
-    , right = right_
-    , jump = jump_
+    { left = not moveRight
+    , right = moveRight
+    , jump = ball.position.y < playerRadius * 2
     }
 
 
-applyGameBoundaries : Viewport -> Coords -> Int
-applyGameBoundaries game position =
+applyViewportBoundaries : Viewport -> Coords -> Int
+applyViewportBoundaries game position =
     if position.x < playerRadius then
         playerRadius
 
@@ -516,14 +490,14 @@ applyGameBoundaries game position =
         position.x
 
 
-applyGameBoundariesToBall : Viewport -> Ball -> Ball
-applyGameBoundariesToBall game ({ position, radius, velocity } as ball) =
+applyViewportBoundariesToBall : Viewport -> Ball -> Ball
+applyViewportBoundariesToBall viewport ({ position, radius, velocity } as ball) =
     let
         hitBoundaries =
             if position.x < radius then
                 True
 
-            else if position.x > game.x - radius then
+            else if position.x > viewport.x - radius then
                 True
 
             else
@@ -837,10 +811,10 @@ renderScoreDots player =
 
 
 renderWall : Wall -> Viewport -> Html Msg
-renderWall wall game =
+renderWall wall viewport =
     let
         left =
-            game.x // 2 - wall.width // 2
+            viewport.x // 2 - wall.width // 2
     in
     div
         [ style "width" (String.fromInt wall.width ++ "px")
@@ -918,7 +892,7 @@ getPupilPosition eyeRadius pupilRadius eyePosition ballPosition =
             toVector { x = eyeRadius // 2, y = eyeRadius // 2 }
 
         unitNormal =
-            getUnitNormal eyePosition ballPosition
+            Vector.unitNormal eyePosition ballPosition
     in
     Vector.sum center (Vector.times unitNormal (toFloat pupilRadius))
 
@@ -939,7 +913,7 @@ getEyePosition radius player =
         unitNormal =
             Vector facing 1
                 |> Vector.sum vPlayerPosition
-                |> getUnitNormal vPlayerPosition
+                |> Vector.unitNormal vPlayerPosition
 
         scalar =
             0.9
