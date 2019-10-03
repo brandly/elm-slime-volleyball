@@ -1,4 +1,4 @@
-module Main exposing (..)
+module Main exposing (Model, Msg(..), main, subscriptions, update, view)
 
 import Browser
 import Browser.Events exposing (onKeyDown, onKeyUp)
@@ -13,7 +13,9 @@ import Tuple
 
 
 type alias Flags =
-    { width : Int, height : Int }
+    { width : Int
+    , height : Int
+    }
 
 
 main : Program Flags Model Msg
@@ -85,12 +87,6 @@ type alias Coords =
     }
 
 
-type alias Ai =
-    { active : Bool
-    , direction : Int -> Int -> Bool
-    }
-
-
 type alias KeyCode =
     String
 
@@ -102,6 +98,11 @@ type alias Controls =
     }
 
 
+type Controller
+    = Keyboard Controls
+    | AI
+
+
 type Team
     = Left
     | Right
@@ -109,13 +110,25 @@ type Team
 
 type alias Player =
     { position : Coords
-    , controls : Controls
+    , controller : Controller
     , color : Color
     , velocity : Vector
     , score : Int
-    , ai : Ai
     , team : Team
     }
+
+
+getActiveControlsForPlayer : Set KeyCode -> Ball -> Player -> ActiveControls
+getActiveControlsForPlayer pressedKeys ball player =
+    case player.controller of
+        Keyboard controls ->
+            { left = keyPressed controls.left pressedKeys
+            , right = keyPressed controls.right pressedKeys
+            , jump = keyPressed controls.jump pressedKeys
+            }
+
+        AI ->
+            getAiActiveControls ball player
 
 
 type alias Ball =
@@ -185,20 +198,18 @@ initialModel =
     { player1 =
         Player
             (Coords (containerWidth // 2 - 100) 0)
-            wasdControls
+            AI
             Color.blue
             { x = 0, y = 0 }
             0
-            (Ai True (>))
             Left
     , player2 =
         Player
             (Coords (containerWidth // 2 + 100) 0)
-            arrowControls
+            (Keyboard arrowControls)
             Color.red
             { x = 0, y = 0 }
             0
-            (Ai False (<))
             Right
     , ui = initialUi
     , viewport = { x = 500, y = 500 }
@@ -270,28 +281,20 @@ update action ({ ui, player1, player2, viewport, wall, ball } as model) =
 
         Tick _ ->
             let
+                activeControls =
+                    getActiveControlsForPlayer ui.pressedKeys ball
+
                 maybeJump player =
-                    if (getActiveControlsForPlayer player).jump && player.position.y == 0 then
+                    if (activeControls player).jump && player.position.y == 0 then
                         jump player
 
                     else
                         player
 
-                getActiveControlsForPlayer : Player -> ActiveControls
-                getActiveControlsForPlayer player =
-                    if player.ai.active then
-                        getAiActiveControls ball player
-
-                    else
-                        { left = keyPressed player.controls.left ui.pressedKeys
-                        , right = keyPressed player.controls.right ui.pressedKeys
-                        , jump = keyPressed player.controls.jump ui.pressedKeys
-                        }
-
                 updatePlayer player =
                     player
                         |> maybeJump
-                        |> (\p -> applyControlsToPlayerPosition viewport (getActiveControlsForPlayer p) p)
+                        |> (\p -> applyControlsToPlayerPosition viewport (activeControls p) p)
 
                 wallPos : Int
                 wallPos =
@@ -777,8 +780,7 @@ renderHeader =
 
 renderPlayScreen : Model -> Html Msg
 renderPlayScreen ({ player1, player2 } as model) =
-    div
-        []
+    div []
         [ renderHeader
         , renderGame model
         , renderScore player1 player2
@@ -803,13 +805,13 @@ renderGame { viewport, player1, player2, wall, ball } =
 
 
 renderCoords : Coords -> Viewport -> Html Msg
-renderCoords ({ x } as position) game =
+renderCoords ({ x } as position) viewport =
     let
         size =
             20
 
         y_ =
-            gameY game (size // 2) position
+            gameY viewport (size // 2) position
 
         x_ =
             x - (size // 2)
@@ -922,7 +924,10 @@ renderPlayer player ball game =
             getEyePosition eyeRadius player
 
         pupilPosition =
-            getPupilPosition eyeRadius pupilRadius (sum eyePosition (toVector player.position)) (toVector ball.position)
+            getPupilPosition eyeRadius
+                pupilRadius
+                (sum eyePosition (toVector player.position))
+                (toVector ball.position)
     in
     div
         [ style "position" "absolute"
