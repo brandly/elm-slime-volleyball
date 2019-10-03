@@ -5,7 +5,16 @@
     <title>~ slime volleyball ~</title>
   </head>
   <body>
-    <script src="./slime.js"></script>
-    <script>Elm.Main.fullscreen()</script>
+    <div id="elm"></div>
+    <script src="./the.js"></script>
+    <script>
+      Elm.Main.init({
+        node: document.getElementById('elm'),
+        flags: {
+          width: window.innerWidth,
+          height: window.innerHeight
+        }
+      });
+    </script>
   </body>
 </html>
