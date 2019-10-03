@@ -10,6 +10,7 @@ import Json.Decode as Decode
 import Set exposing (Set)
 import Task
 import Tuple
+import Vector exposing (Vector)
 
 
 type alias Flags =
@@ -32,48 +33,6 @@ main =
 
 
 -- MODEL
-
-
-type alias Vector =
-    { x : Float
-    , y : Float
-    }
-
-
-divide : Vector -> Float -> Vector
-divide vec scalar =
-    times vec (1 / scalar)
-
-
-times : Vector -> Float -> Vector
-times vec scalar =
-    { x = vec.x * scalar
-    , y = vec.y * scalar
-    }
-
-
-sum : Vector -> Vector -> Vector
-sum a b =
-    { x = a.x + b.x
-    , y = a.y + b.y
-    }
-
-
-distance : Vector -> Vector -> Float
-distance a b =
-    (b.x - a.x) ^ 2 + (b.y - a.y) ^ 2 |> sqrt
-
-
-magnitude : Vector -> Float
-magnitude =
-    distance (Vector 0 0)
-
-
-toNormalVector : Vector -> Vector -> Vector
-toNormalVector v1 v2 =
-    { x = v2.x - v1.x
-    , y = v2.y - v1.y
-    }
 
 
 toVector : Coords -> Vector
@@ -115,6 +74,25 @@ type alias Player =
     , velocity : Vector
     , score : Int
     , team : Team
+    }
+
+
+createPlayer : Controller -> Color -> Team -> Player
+createPlayer controller color team =
+    let
+        x =
+            if team == Left then
+                containerWidth // 2 - 100
+
+            else
+                containerWidth // 2 + 100
+    in
+    { position = Coords x 0
+    , controller = controller
+    , color = color
+    , velocity = { x = 0, y = 0 }
+    , score = 0
+    , team = team
     }
 
 
@@ -196,26 +174,23 @@ initialUi =
 initialModel : Model
 initialModel =
     { player1 =
-        Player
-            (Coords (containerWidth // 2 - 100) 0)
-            AI
+        createPlayer AI
             Color.blue
-            { x = 0, y = 0 }
-            0
             Left
     , player2 =
-        Player
-            (Coords (containerWidth // 2 + 100) 0)
-            (Keyboard arrowControls)
+        createPlayer (Keyboard arrowControls)
             Color.red
-            { x = 0, y = 0 }
-            0
             Right
     , ui = initialUi
     , viewport = { x = 500, y = 500 }
     , wall = { height = 50, width = 10 }
-    , ball = Ball (Coords (containerWidth // 2) 200) (Vector 0 0) 15
+    , ball = initialBall
     }
+
+
+initialBall : Ball
+initialBall =
+    Ball (Coords (containerWidth // 2) 200) (Vector 0 0) 15
 
 
 freshGame : Model -> Model
@@ -237,14 +212,12 @@ freshGame { ui, viewport, player1, player2 } =
 
 
 freshDrop : Model -> Model
-freshDrop { ui, viewport, player1, player2 } =
+freshDrop ({ ui } as model) =
     let
         ui_ =
-            { ui
-                | screen = PlayScreen
-            }
+            { ui | screen = PlayScreen }
     in
-    { initialModel | ui = ui_, viewport = viewport, player1 = player1, player2 = player2 }
+    { model | ui = ui_, ball = initialBall }
 
 
 type Msg
@@ -434,7 +407,7 @@ collideWithPlayer player ({ velocity } as ball) =
             toVector ball.position
 
         gap =
-            distance vPlayerPosition vBallPosition
+            Vector.distance vPlayerPosition vBallPosition
 
         didCollide =
             round gap < playerRadius + ball.radius
@@ -443,7 +416,7 @@ collideWithPlayer player ({ velocity } as ball) =
             getUnitNormal vPlayerPosition vBallPosition
 
         scaledNormal =
-            times unitNormal (magnitude ball.velocity)
+            Vector.times unitNormal (Vector.magnitude ball.velocity)
 
         velocity_ =
             if didCollide then
@@ -458,10 +431,10 @@ collideWithPlayer player ({ velocity } as ball) =
 getUnitNormal : Vector -> Vector -> Vector
 getUnitNormal a b =
     let
-        normalVector =
-            toNormalVector a b
+        diff =
+            Vector.difference a b
     in
-    divide normalVector (magnitude normalVector)
+    Vector.divide diff (Vector.magnitude diff)
 
 
 applyControlsToPlayerPosition : Viewport -> ActiveControls -> Player -> Player
@@ -804,34 +777,9 @@ renderGame { viewport, player1, player2, wall, ball } =
         )
 
 
-renderCoords : Coords -> Viewport -> Html Msg
-renderCoords ({ x } as position) viewport =
-    let
-        size =
-            20
-
-        y_ =
-            gameY viewport (size // 2) position
-
-        x_ =
-            x - (size // 2)
-    in
-    div
-        [ style "position" "absolute"
-        , style "border" "1px solid pink"
-        , style "height" (String.fromFloat size ++ "px")
-        , style "width" (String.fromFloat size ++ "px")
-        , style "left" (String.fromInt x_ ++ "px")
-        , style "top" (String.fromInt y_ ++ "px")
-        ]
-        []
-
-
 renderScore : Player -> Player -> Html Msg
 renderScore p1 p2 =
-    div
-        [ style "width" "100%"
-        ]
+    div [ style "width" "100%" ]
         [ div
             [ style "width" "50%"
             , style "display" "inline-block"
@@ -926,7 +874,7 @@ renderPlayer player ball game =
         pupilPosition =
             getPupilPosition eyeRadius
                 pupilRadius
-                (sum eyePosition (toVector player.position))
+                (Vector.sum eyePosition (toVector player.position))
                 (toVector ball.position)
     in
     div
@@ -972,7 +920,7 @@ getPupilPosition eyeRadius pupilRadius eyePosition ballPosition =
         unitNormal =
             getUnitNormal eyePosition ballPosition
     in
-    sum center (times unitNormal (toFloat pupilRadius))
+    Vector.sum center (Vector.times unitNormal (toFloat pupilRadius))
 
 
 getEyePosition : Int -> Player -> Vector
@@ -990,7 +938,7 @@ getEyePosition radius player =
 
         unitNormal =
             Vector facing 1
-                |> sum vPlayerPosition
+                |> Vector.sum vPlayerPosition
                 |> getUnitNormal vPlayerPosition
 
         scalar =
@@ -999,7 +947,7 @@ getEyePosition radius player =
         scaledEyeVector =
             scalar
                 * toFloat playerRadius
-                |> times unitNormal
+                |> Vector.times unitNormal
 
         eyeX =
             scaledEyeVector.x + toFloat playerRadius - toFloat radius
